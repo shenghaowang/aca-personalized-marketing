@@ -9,10 +9,26 @@ def run():
     logger.info(f"Loaded data: {df.shape}")
     logger.info(f"\n{df.head()}")
 
+    # Take a stratified sample from the full dataset
+    sample_df = (
+        df.groupby(["treatment_group", "conversion"], group_keys=False)
+        .apply(lambda x: x.sample(frac=0.2, random_state=1))
+        .reset_index(drop=True)
+    )
+    logger.info(f"Sample data: {sample_df.shape}")
+
     return df
 
 
 def load_data() -> pd.DataFrame:
+    """Import Megafon data via the sklift package
+    into a dataframe
+
+    Returns
+    -------
+    pd.DataFrame
+        full Megafon dataset
+    """
     raw_ds = fetch_megafon()
     logger.info(f"Dataset type: {type(raw_ds)}\n")
     logger.info(f"Dataset features shape: {raw_ds.data.shape}")
