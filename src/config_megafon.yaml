@@ -1,0 +1,23 @@
+datasets:
+  sample_size: 0.2
+  path:
+    train_dir: data/megafon_train.csv
+    valid_dir: data/megafon_valid.csv
+    test_dir: data/megafon_test.csv
+
+features:
+  treatment_col: treatment_group
+  conversion_col: conversion
+  spending_col: spending
+  spending_simulation:
+    treatment:
+      mean: 2
+      std: 0.5
+    control:
+      mean: 1.7
+      std: 0.4
+
+  data_split:
+    train: 0.7
+    valid: 0.15
+    test: 0.15

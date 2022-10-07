@@ -1,23 +1,87 @@
 datasets:
-  sample_size: 0.2
-  path:
-    train_dir: data/megafon_train.csv
-    valid_dir: data/megafon_valid.csv
-    test_dir: data/megafon_test.csv
+  raw: data/raw/USCensus1990.data.txt
+  processed:
+    train: data/processed/USCensus1990_train.csv
+    valid: data/processed/USCensus1990_valid.csv
+    test: data/processed/USCensus1990_test.csv
+  data_split:
+    train: 0.6
+    valid: 0.2
+    test: 0.2
 
 features:
-  treatment_col: treatment_group
-  conversion_col: conversion
-  spending_col: spending
-  spending_simulation:
-    treatment:
-      mean: 2
-      std: 0.5
-    control:
-      mean: 1.7
-      std: 0.4
+  age_col: dAge
+  citizen_col: iCitizen
+  fertil_col: iFertil
+  hour_col: dHour89
+  treatment_col: treatment
+  gain_col: dIncome1
+  cost_col: iFertil
 
-  data_split:
-    train: 0.7
-    valid: 0.15
-    test: 0.15
+  binary_cols:  # 6 cols
+    - iMay75880
+    - iRownchld
+    - iRrelchld
+    - iSept80
+    - iVietnam
+
+  categorical_cols: # 34 cols
+    - iAvail
+    - iClass
+    - iDisabl1
+    - iDisabl2
+    - iEnglish
+    - iLooking
+    - iMeans
+    - iMilitary
+    - iMobility
+    - iMobillim
+    - iPerscare
+    - iRagechld
+    - iRelat1
+    - iRelat2
+    - iRemplpar
+    - iRiders
+    - iRlabor
+    - iRPOB
+    - iRvetserv
+    - iSchool
+    - iSubfam1
+    - iSubfam2
+    - iTmpabsnt
+    - iWork89
+    - iWorklwk
+    - iYearsch
+    - iYearwrk
+    - dYrsserv
+    - dIndustry # verified
+    - dOccup
+    - dDepart
+    - dPoverty # (To be verified)
+    - dPwgt1
+    - dWeek89
+
+  removed_cols: # 23 cols
+    - dAncstry1 # Confounding variable
+    - dAncstry2 # Confounding variable
+    - dHispanic # Confounding variable
+    - dHours  # Repeated with dHour89
+    - iRPOB # Too many categories
+    - dIncome2  # Repeated with dIncome1
+    - dIncome3  # Repeated with dIncome1
+    - dIncome4  # Repeated with dIncome1
+    - dIncome5  # Repeated with dIncome1
+    - dIncome6  # Repeated with dIncome1
+    - dIncome7  # Repeated with dIncome1
+    - dIncome8  # Repeated with dIncome1
+    - iMarital  # Confounding variable
+    - iOthrserv # Same value for all examples (verified)
+    - dPOB  # Same value for all examples
+    - dRearning # Repeated with dIncome1
+    - dRpincome # Repeated with dIncome1
+    - iRspouse  # Confounding variable
+    - iFeb55  # Same value for all examples
+    - iSex  # Same value for all examples
+    - iWWII # Same value for all examples
+    - iImmigr # Same value for all examples
+    - iKorean # Same value for all examples
