@@ -35,29 +35,31 @@ def main(cfg: DictConfig) -> None:
     )
 
     # Encode the categorical features
-    # encoded_df = encode(filtered_df, cfg.features.categorical_cols)
+    encoded_df = encode(filtered_df, cfg.features.categorical_cols)
 
-    # Split data for training, validation, and test
-    train_df, valid_df, test_df = split(filtered_df, cfg.features.hour_col)
+    # Split the encoded data for training, validation, and test
+    train_df, valid_df, test_df = split(encoded_df, cfg.features.hour_col)
 
     # Scale the data
-    feature_cols = cfg.features.binary_cols + cfg.features.categorical_cols
-    target_cols = [cfg.features.hour_col, cfg.features.gain_col, cfg.features.cost_col]
-    logger.debug(f"Number of feature columns: {len(feature_cols)}")
-    scaler = StandardScaler()
-    scaler.fit(train_df[feature_cols])
+    # feature_cols = cfg.features.binary_cols + cfg.features.categorical_cols
+    # target_cols = (
+    #     [cfg.features.hour_col, cfg.features.gain_col, cfg.features.cost_col]
+    # )
+    # logger.debug(f"Number of feature columns: {len(feature_cols)}")
+    # scaler = StandardScaler()
+    # scaler.fit(train_df[feature_cols])
 
-    scaled_train_df = scale(train_df, scaler, feature_cols, target_cols)
-    logger.info(f"Scaled training data: {scaled_train_df.shape}")
-    logger.info(f"\n{train_df.head()}")
+    # scaled_train_df = scale(train_df, scaler, feature_cols, target_cols)
+    # logger.info(f"Scaled training data: {scaled_train_df.shape}")
+    # logger.info(f"\n{train_df.head()}")
 
-    scaled_valid_df = scale(valid_df, scaler, feature_cols, target_cols)
-    scaled_test_df = scale(test_df, scaler, feature_cols, target_cols)
+    # scaled_valid_df = scale(valid_df, scaler, feature_cols, target_cols)
+    # scaled_test_df = scale(test_df, scaler, feature_cols, target_cols)
 
     # Export data
-    scaled_train_df.to_csv(cfg.datasets.processed.train, index=False)
-    scaled_valid_df.to_csv(cfg.datasets.processed.valid, index=False)
-    scaled_test_df.to_csv(cfg.datasets.processed.test, index=False)
+    train_df.to_csv(cfg.datasets.processed.train, index=False)
+    valid_df.to_csv(cfg.datasets.processed.valid, index=False)
+    test_df.to_csv(cfg.datasets.processed.test, index=False)
 
 
 def select_features(df: pd.DataFrame, feature_cfg: DictConfig) -> pd.DataFrame:
