@@ -12,13 +12,11 @@ datasets:
 features:
   age_col: dAge
   citizen_col: iCitizen
-  fertil_col: iFertil
   hour_col: dHour89
-  treatment_col: treatment
   gain_col: dIncome1
   cost_col: iFertil
 
-  binary_cols:  # 6 cols
+  binary_cols:  # 5 cols
     - iMay75880
     - iRownchld
     - iRrelchld
