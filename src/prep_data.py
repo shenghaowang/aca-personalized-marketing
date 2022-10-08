@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List, Tuple
 
 import hydra
@@ -57,6 +58,8 @@ def main(cfg: DictConfig) -> None:
     # scaled_test_df = scale(test_df, scaler, feature_cols, target_cols)
 
     # Export data
+    output_dir = Path(cfg.datasets.processed.train).parent
+    output_dir.mkdir(parents=True, exist_ok=True)
     train_df.to_csv(cfg.datasets.processed.train, index=False)
     valid_df.to_csv(cfg.datasets.processed.valid, index=False)
     test_df.to_csv(cfg.datasets.processed.test, index=False)
