@@ -1,6 +1,26 @@
+import pytorch_lightning as pl
 import torch
+from loguru import logger
 
-# from loguru import logger
+
+class UserTargetingModel(pl.LightningModule):
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+
+    def forward(self, x, T):
+        return self.model(x, T)
+
+    def calculate_loss(self, g, c, p, T):
+        t_map = {1: 1, 0: -1}
+        t = torch.tensor([t_map[t.item()] for t in T]).float()
+        p = torch.mul(p, t)
+
+        agg_gain = torch.dot(g, p)
+        agg_cost = torch.dot(c, p)
+
+        logger.debug(f"agg_gain: {agg_gain}")
+        logger.debug(f"agg_cost: {agg_cost}")
 
 
 class DirectRankingModel(torch.nn.Module):
