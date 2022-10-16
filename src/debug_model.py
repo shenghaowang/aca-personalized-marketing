@@ -35,13 +35,14 @@ def main(cfg: DictConfig) -> None:
     logger.debug(f"Batch cost for training: {local_cost.size()}")
 
     # Test the direct ranking architecture
-    drm = DirectRankingModel(input_dim=215, hidden_dim=64)
+    num_features = local_features.size()[1]
+    drm = DirectRankingModel(input_dim=num_features, hidden_dim=cfg.model.hidden_dim)
     res = drm(x=local_features, T=local_treatment)
-    logger.info(f"Model output: {res.size()}")
+    logger.debug(f"Output of NN: {res}")
 
     # Test the loss function
-    utm = UserTargetingModel(model=drm)
-    utm.calculate_loss(local_gain, local_cost, res, local_treatment)
+    utm = UserTargetingModel(model=drm, hyparams=cfg.model)
+    utm.calculate_loss(local_batch)
 
 
 def test_scoring() -> None:
