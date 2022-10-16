@@ -3,8 +3,7 @@ from typing import List
 import hydra
 import pytorch_lightning as pl
 import torch
-
-# from loguru import logger
+from loguru import logger
 from omegaconf import DictConfig
 
 from census_data import Census1990DataModule
@@ -33,15 +32,18 @@ def trainer(
     hyparams: DictConfig,
     target_cols: List[str],
 ):
-    # device = torch.device("cpu")
-
-    # Create a pytorch trainer
-    trainer = pl.Trainer(max_epochs=hyparams.max_epochs, check_val_every_n_epoch=1)
-
     torch.manual_seed(seed=42)
 
+    # Create a pytorch trainer
+    trainer = pl.Trainer(
+        max_epochs=hyparams.max_epochs,
+        check_val_every_n_epoch=1,
+        # devices=2,
+        # accelerator="cpu"
+    )
+
     data_module = Census1990DataModule(
-        batch_size=32,
+        batch_size=hyparams.batch_size,
         train_dir=processed_data_dir.train,
         valid_dir=processed_data_dir.valid,
         test_dir=processed_data_dir.test,
@@ -58,8 +60,18 @@ def trainer(
         val_dataloaders=data_module.val_dataloader(),
     )
 
+    # Test the model
+    trainer.test(model, data_module.test_dataloader())
+
     # Predict on the same test set to show some output
-    trainer.predict(model, data_module.test_dataloader())
+    output = trainer.predict(model, data_module.test_dataloader())
+
+    for i in range(2):
+        logger.debug("====================")
+        logger.debug(f"Treatment: {output[1]['treatment'][i].numpy()}")
+        logger.debug(f"Gain: {output[1]['gain'][i].numpy()}")
+        logger.debug(f"Cost: {output[1]['cost'][i].numpy()}")
+        logger.debug(f"Scores: {output[1]['scores'][i].numpy()}")
 
 
 if __name__ == "__main__":

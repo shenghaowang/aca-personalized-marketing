@@ -51,7 +51,12 @@ class UserTargetingModel(pl.LightningModule):
 
         p = self.model(x, T)
 
-        return p
+        return {
+            "scores": p,
+            "treatment": T,
+            "gain": batch["gain"],
+            "cost": batch["cost"],
+        }
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
