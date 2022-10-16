@@ -91,3 +91,5 @@ model:
   input_dim: 215
   hidden_dim: 128
   weight_decay: 1e-5
+
+model_file: models/drm.model

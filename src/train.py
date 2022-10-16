@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List
 
 import hydra
@@ -23,6 +24,7 @@ def main(cfg: DictConfig):
         processed_data_dir=cfg.datasets.processed,
         hyparams=cfg.model,
         target_cols=target_cols,
+        model_file=cfg.model_file,
     )
 
 
@@ -31,7 +33,8 @@ def trainer(
     processed_data_dir: DictConfig,
     hyparams: DictConfig,
     target_cols: List[str],
-):
+    model_file: str,
+) -> None:
     torch.manual_seed(seed=42)
 
     # Create a pytorch trainer
@@ -71,7 +74,14 @@ def trainer(
         logger.debug(f"Treatment: {output[1]['treatment'][i].numpy()}")
         logger.debug(f"Gain: {output[1]['gain'][i].numpy()}")
         logger.debug(f"Cost: {output[1]['cost'][i].numpy()}")
-        logger.debug(f"Scores: {output[1]['scores'][i].numpy()}")
+        logger.debug(f"Score: {output[1]['scores'][i].numpy()}")
+
+    # Export fitted model
+    model_dir = Path(model_file).parent
+    model_dir.mkdir(parents=True, exist_ok=True)
+
+    torch.save(model.state_dict(), model_file)
+    logger.info(f"Fitted direct ranking model exported to {model_file}.")
 
 
 if __name__ == "__main__":
