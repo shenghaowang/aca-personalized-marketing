@@ -4,7 +4,7 @@ from loguru import logger
 from omegaconf import DictConfig
 
 from census_data import Census1990DataModule
-from drm import DirectRankingModel, Scoring
+from drm import DirectRankingModel, Scoring, UserTargetingModel
 
 
 @hydra.main(version_base=None, config_path=".", config_name="config")
@@ -34,10 +34,15 @@ def main(cfg: DictConfig) -> None:
     logger.debug(f"Batch gain for training: {local_gain.size()}")
     logger.debug(f"Batch cost for training: {local_cost.size()}")
 
-    drm = DirectRankingModel(input_dim=215, hidden_dim=64)
+    # Test the direct ranking architecture
+    num_features = local_features.size()[1]
+    drm = DirectRankingModel(input_dim=num_features, hidden_dim=cfg.model.hidden_dim)
     res = drm(x=local_features, T=local_treatment)
+    logger.debug(f"Output of NN: {res}")
 
-    logger.info(f"Model output: {res.size()}")
+    # Test the loss function
+    utm = UserTargetingModel(model=drm, hyparams=cfg.model)
+    utm.calculate_loss(local_batch)
 
 
 def test_scoring() -> None:
