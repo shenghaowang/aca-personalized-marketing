@@ -1,19 +1,24 @@
 import random
 
+import hydra
 import numpy as np
 import pandas as pd
 import torch
 from loguru import logger
+from omegaconf import DictConfig, OmegaConf
 from sklift.metrics import qini_auc_score
 from tqdm import tqdm
 
 from data.starbucks import load_data
 from experiment.aca import experiment
 from metrics.ranking import plot_uplift_curve
-from model.neuralnet import NeuralNetClassifier
+from model.model_type import init_model
 
 
-def main():
+@hydra.main(version_base=None, config_path="../config", config_name="config")
+def main(cfg: DictConfig):
+    logger.info(OmegaConf.to_yaml(cfg, resolve=True))
+
     # Set random seeds for reproducibility
     random.seed(42)
     np.random.seed(42)
@@ -40,7 +45,7 @@ def main():
 
     # define approach
     logger.info("Training Class Transformation model...")
-    ct = NeuralNetClassifier(input_dim=len(feature_cols))
+    ct = init_model(cfg.model, input_dim=len(feature_cols))
 
     # fit the model
     ct.fit(X_train, y_train)
@@ -58,34 +63,25 @@ def main():
     )
     test_df["normalised_rank"] = test_df["rank"] / test_df["rank"].max()
 
-    # res = experiment(
-    #     train_df=train_df,
-    #     test_df=test_df,
-    #     feature_cols=feature_cols,
-    #     attack_attr='V6',
-    #     attack_seg=4,
-    #     new_val=1,
-    #     frac=0.1
-    # )
-    # logger.info(res)
-
-    num_experiments = 100
     results_list = []
-    for i in tqdm(range(num_experiments)):
-        logger.info(f"Experiment {i+1}/{num_experiments}")
+    n_experiments = cfg.experiment.n_experiments
+    for i in tqdm(range(n_experiments)):
+        logger.info(f"Experiment {i+1}/{n_experiments}")
         res = experiment(
+            model=init_model(cfg.model, input_dim=len(feature_cols)),
             train_df=train_df,
             test_df=test_df,
             feature_cols=feature_cols,
-            attack_attr="V6",
-            attack_seg=4,
-            new_val=1,
-            frac=0.1,
+            attack_attr=cfg.experiment.attack_attr,
+            attack_val=cfg.experiment.attack_val,
+            new_val=cfg.experiment.new_val,
+            frac=cfg.experiment.frac,
         )
+        logger.debug(res)
         results_list.append(res)
 
     results_df = pd.DataFrame(results_list)
-    results_df.to_csv("results_nn.csv", index=False)
+    results_df.to_csv(cfg.experiment.results_dir, index=False)
 
 
 if __name__ == "__main__":
