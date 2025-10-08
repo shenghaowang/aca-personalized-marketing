@@ -1,0 +1,9 @@
+model: ???
+
+experiment:
+  n_experiments: 100
+  attack_attr: V6
+  attack_val: 4
+  new_val: 1
+  frac: 0.1
+  results_dir: results_${model}.csv
