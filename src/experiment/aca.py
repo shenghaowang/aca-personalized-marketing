@@ -1,7 +1,8 @@
 import random
-from typing import List
+from typing import List, Union
 
 import pandas as pd
+from lightgbm import LGBMClassifier
 from loguru import logger
 from sklift.metrics import qini_auc_score
 
@@ -9,25 +10,26 @@ from model.neuralnet import NeuralNetClassifier
 
 
 def experiment(
+    model: Union[LGBMClassifier, NeuralNetClassifier],
     train_df: pd.DataFrame,
     test_df: pd.DataFrame,
     feature_cols: List[str],
     attack_attr: str,
-    attack_seg: int,
+    attack_val: int,
     new_val: int,
     frac: float = 0.1,
 ):
     train_df_modified = collective_action(
         df=train_df,
         attack_attr=attack_attr,
-        attack_seg=attack_seg,
+        attack_val=attack_val,
         new_val=new_val,
         frac=frac,
     )
     test_df_modified = collective_action(
         df=test_df,
         attack_attr=attack_attr,
-        attack_seg=attack_seg,
+        attack_val=attack_val,
         new_val=new_val,
         frac=frac,
     )
@@ -38,11 +40,10 @@ def experiment(
     X_test_modified = test_df_modified[feature_cols].values
 
     # fit the class transformation model
-    ct = NeuralNetClassifier(input_dim=len(feature_cols))
-    ct.fit(X_train_modified, y_train_modified)
+    model.fit(X_train_modified, y_train_modified)
 
     # predict uplift
-    test_df_modified["uplift"] = 2 * ct.predict_proba(X_test_modified)[:, 1] - 1
+    test_df_modified["uplift"] = 2 * model.predict_proba(X_test_modified)[:, 1] - 1
     auqc = qini_auc_score(
         test_df_modified["purchase"],
         test_df_modified["uplift"],
@@ -81,10 +82,10 @@ def experiment(
 
 # Strategies: V6 = 4 -> 1, V1 = 3 -> 0
 def collective_action(
-    df: pd.DataFrame, attack_attr: str, attack_seg: int, new_val: int, frac: float = 0.1
+    df: pd.DataFrame, attack_attr: str, attack_val: int, new_val: int, frac: float = 0.1
 ) -> pd.DataFrame:
     # Sample the data by ID
-    collective_ids = df[df[attack_attr] == attack_seg]["ID"].tolist()
+    collective_ids = df[df[attack_attr] == attack_val]["ID"].tolist()
 
     # random.seed(42)
     sampled_ids = random.sample(collective_ids, int(len(collective_ids) * frac))
@@ -101,5 +102,5 @@ def collective_action(
         f"Sampled shape: {df_sampled.shape}, Unsampled shape: {df_unsampled.shape}"
     )
 
-    df_sampled["V1"] = new_val
+    df_sampled[attack_attr] = new_val
     return pd.concat([df_sampled, df_unsampled])
