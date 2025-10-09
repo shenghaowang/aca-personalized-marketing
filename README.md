@@ -1,6 +1,6 @@
 # Algorithmic Collective Action for Personalized Marketing
 
-Uplift modeling research based on the Hillstrom's email analytics data
+Investigate the impacts of algorithmic collection action on personalized marketing powered by uplift modeling.
 
 ## 📦 Installation
 
@@ -15,7 +15,7 @@ cd text-classification-cnn-lstm
 2. **Create a virtual environment**
 ```bash
 python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate
 ```
 
 3. **Install dependencies**
