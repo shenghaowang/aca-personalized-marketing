@@ -54,7 +54,7 @@ plot_aca(
     i1=np.array([2.08, 1.97, 2.14, 2.09, 2.21]),
     q2=np.array([42.28, 42.63, 38.68, 49.63, 13.04]),
     i2=np.array([9.62, 10.40, 10.15, 9.98, 10.88]),
-    title="Strategy 2: Change V6 = 4 to 1 - Qini Coefficient Decrease",
+    title="Strategy 2: Change V1 = 3 to 0 - Qini Coefficient Decrease",
 )
 
 # %%
@@ -64,5 +64,5 @@ plot_aca(
     i1=np.array([1.15, 0.99, 1.19, 1.15, 1.13]),
     q2=np.array([-1.61, -4.17, 2.79, -3.26, 1.48]),
     i2=np.array([4.77, 4.38, 4.63, 4.2, 4.34]),
-    title="Strategy 2: Change V6 = 4 to 1 - Average Normalised Rank Decrease",
+    title="Strategy 2: Change V1 = 3 to 0 - Average Normalised Rank Decrease",
 )
