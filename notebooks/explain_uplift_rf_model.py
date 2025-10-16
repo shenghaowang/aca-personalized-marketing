@@ -5,7 +5,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import shap
 import torch
 from loguru import logger
 from sklift.metrics import qini_auc_score
@@ -57,6 +56,8 @@ plot_uplift_curve(test_df["purchase"], test_df["uplift"], test_df["treatment"])
 
 # %%
 # Examine feature importance
-pd.Series(uplift_rf.feature_importances_, index=feature_cols).sort_values().plot(kind='barh', figsize=(12,8))
+pd.Series(uplift_rf.feature_importances_, index=feature_cols).sort_values().plot(
+    kind="barh", figsize=(12, 8)
+)
 
 # %%
