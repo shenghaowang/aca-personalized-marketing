@@ -12,7 +12,7 @@ from tqdm import tqdm
 from data.starbucks import load_data
 from experiment.aca import experiment
 from metrics.ranking import plot_uplift_curve
-from model.model_type import init_model
+from model.model_type import ModelType, get_model_kwargs, init_model
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="config")
@@ -36,27 +36,35 @@ def main(cfg: DictConfig):
 
     feature_cols = [col for col in train_df.columns if col.startswith("V")]
 
-    # Train the original class transformation model
     X_train = train_df[feature_cols].values
-    y_train = train_df["label"].values
-    # t_train = train_df["Promotion"].values
-
     X_test = test_df[feature_cols].values
 
-    # define approach
-    logger.info("Training Class Transformation model...")
-    ct = init_model(cfg.model, input_dim=len(feature_cols))
+    logger.info("Training uplift model...")
 
-    # fit the model
-    ct.fit(X_train, y_train)
+    # Get model kwargs based on model type
+    model_kwargs = get_model_kwargs(cfg.model, feature_cols)
 
-    # predict uplift
-    test_df["uplift"] = 2 * ct.predict_proba(X_test)[:, 1] - 1
+    # Initialize and fit the model
+    model = init_model(cfg.model, **model_kwargs)
 
-    auqc = qini_auc_score(test_df["purchase"], test_df["uplift"], test_df["Promotion"])
+    match cfg.model:
+        case ModelType.ClassTransformLGBM.value | ModelType.ClassTransformMLP.value:
+            y_train = train_df["label"].values
+            model.fit(X_train, y_train)
+            # predict uplift
+            test_df["uplift"] = 2 * model.predict_proba(X_test)[:, 1] - 1
+        case ModelType.UpliftRF.value:
+            t_train = train_df["Promotion"].values
+            y_train = train_df["purchase"].values
+            model.fit(X=X_train, treatment=t_train, y=y_train)
+            test_df["uplift"] = model.predict(X_test)
+        case _:
+            raise ValueError(f"Unsupported model type: {cfg.model}")
+
+    auqc = qini_auc_score(test_df["purchase"], test_df["uplift"], test_df["treatment"])
     logger.info(f"Qini coefficient on test data: {auqc:.4f}")
 
-    plot_uplift_curve(test_df["purchase"], test_df["uplift"], test_df["Promotion"])
+    plot_uplift_curve(test_df["purchase"], test_df["uplift"], test_df["treatment"])
 
     test_df["rank"] = (
         test_df["uplift"].rank(method="dense", ascending=False).astype(int)
@@ -68,7 +76,7 @@ def main(cfg: DictConfig):
     for i in tqdm(range(n_experiments)):
         logger.info(f"Experiment {i+1}/{n_experiments}")
         res = experiment(
-            model=init_model(cfg.model, input_dim=len(feature_cols)),
+            model=init_model(cfg.model, **model_kwargs),
             train_df=train_df,
             test_df=test_df,
             feature_cols=feature_cols,
