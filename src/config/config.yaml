@@ -2,8 +2,8 @@ model: ???
 
 experiment:
   n_experiments: 100
-  attack_attr: V6
-  attack_val: 4
-  new_val: 1
+  attack_attr: V4
+  attack_val: 1
+  new_val: 2
   frac: 0.1
   results_dir: results_${model}.csv
