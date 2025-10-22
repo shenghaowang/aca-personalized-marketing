@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import shap
 import torch
 from loguru import logger
 from sklift.metrics import qini_auc_score
@@ -60,4 +61,14 @@ pd.Series(uplift_rf.feature_importances_, index=feature_cols).sort_values().plot
     kind="barh", figsize=(12, 8)
 )
 
+# %%
+# compute SHAP values
+np.random.seed(42)
+
+# Sample background
+background = X_train[np.random.choice(X_train.shape[0], 100, replace=False)]
+
+explainer = shap.PermutationExplainer(uplift_rf.predict, background)
+shap_values = explainer(X_train[:500])
+shap.summary_plot(shap_values, features=X_train[:500], feature_names=feature_cols)
 # %%
