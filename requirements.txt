@@ -1,3 +1,4 @@
+causalml
 hydra-core
 loguru
 matplotlib

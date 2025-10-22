@@ -2,6 +2,7 @@ import random
 from typing import List, Union
 
 import pandas as pd
+from causalml.inference.tree import UpliftRandomForestClassifier
 from lightgbm import LGBMClassifier
 from loguru import logger
 from sklift.metrics import qini_auc_score
@@ -10,7 +11,7 @@ from model.neuralnet import NeuralNetClassifier
 
 
 def experiment(
-    model: Union[LGBMClassifier, NeuralNetClassifier],
+    model: Union[LGBMClassifier, NeuralNetClassifier, UpliftRandomForestClassifier],
     train_df: pd.DataFrame,
     test_df: pd.DataFrame,
     feature_cols: List[str],
@@ -35,19 +36,27 @@ def experiment(
     )
 
     X_train_modified = train_df_modified[feature_cols].values
-    y_train_modified = train_df_modified["label"].values
-    # t_train_modified = train_df_modified["Promotion"]
     X_test_modified = test_df_modified[feature_cols].values
 
-    # fit the class transformation model
-    model.fit(X_train_modified, y_train_modified)
+    # Fit model and predict uplift based on model type
+    if isinstance(model, UpliftRandomForestClassifier):
+        # Uplift Random Forest model
+        t_train_modified = train_df_modified["Promotion"].values
+        y_train_modified = train_df_modified["purchase"].values
+        model.fit(X=X_train_modified, treatment=t_train_modified, y=y_train_modified)
+        test_df_modified["uplift"] = model.predict(X_test_modified)
+    else:
+        # Class transformation models (LGBM, MLP)
+        y_train_modified = train_df_modified["label"].values
+        model.fit(X_train_modified, y_train_modified)
+        test_df_modified["uplift"] = 2 * model.predict_proba(X_test_modified)[:, 1] - 1
 
-    # predict uplift
-    test_df_modified["uplift"] = 2 * model.predict_proba(X_test_modified)[:, 1] - 1
+    # Convert treatment to binary for metric calculation
+    treatment_binary = (test_df_modified["Promotion"] == "Yes").astype(int)
     auqc = qini_auc_score(
         test_df_modified["purchase"],
         test_df_modified["uplift"],
-        test_df_modified["Promotion"],
+        treatment_binary,
     )
 
     test_df_modified["rank"] = (
