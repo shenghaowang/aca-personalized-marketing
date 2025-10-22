@@ -62,6 +62,15 @@ pd.Series(uplift_rf.feature_importances_, index=feature_cols).sort_values().plot
 )
 
 # %%
+# Plot uplift tree
+from causalml.inference.tree import uplift_tree_plot
+from IPython.display import Image
+
+uplift_tree = uplift_rf.uplift_forest[0]
+graph = uplift_tree_plot(uplift_tree.fitted_uplift_tree, feature_cols)
+Image(graph.create_png())
+
+# %%
 # compute SHAP values
 np.random.seed(42)
 
