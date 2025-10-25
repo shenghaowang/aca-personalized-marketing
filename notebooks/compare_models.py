@@ -75,15 +75,23 @@ logger.info(f"Qini coefficient on test data: {auqc:.4f}")
 # %%
 # Plot Qini curves
 _, ax = plt.subplots(figsize=(10, 7))
-xs, ys = uplift_curve(test_df['purchase'], uplift_ct_mlp, test_df['treatment'], n_nodes=None)
+xs, ys = uplift_curve(
+    test_df["purchase"], uplift_ct_mlp, test_df["treatment"], n_nodes=None
+)
 ax.plot(xs, ys, label="CT-MLP", color="blue")
-xs, ys = uplift_curve(test_df['purchase'], uplift_ct_lgbm, test_df['treatment'], n_nodes=None)
+xs, ys = uplift_curve(
+    test_df["purchase"], uplift_ct_lgbm, test_df["treatment"], n_nodes=None
+)
 ax.plot(xs, ys, label="CT-LGBM", color="red")
-xs, ys = uplift_curve(test_df['purchase'], test_df["uplift"], test_df['treatment'], n_nodes=None)
+xs, ys = uplift_curve(
+    test_df["purchase"], test_df["uplift"], test_df["treatment"], n_nodes=None
+)
 ax.plot(xs, ys, label="Uplift-RF", color="orange")
 
 # random model
-responses_target, rescaled_responses_control = number_responses(test_df['purchase'], test_df['treatment'])
+responses_target, rescaled_responses_control = number_responses(
+    test_df["purchase"], test_df["treatment"]
+)
 incr_responses = responses_target - rescaled_responses_control
 ax.plot(
     [0, len(test_df)],
