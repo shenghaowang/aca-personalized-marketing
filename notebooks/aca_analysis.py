@@ -66,3 +66,62 @@ plot_aca(
     i2=np.array([4.77, 4.38, 4.63, 4.2, 4.34]),
     title="Strategy 2: Change V1 = 3 to 0 - Average Normalised Rank Decrease",
 )
+
+
+# %%
+def plot_aca(
+    q1: np.ndarray,
+    i1: np.ndarray,
+    q2: np.ndarray,
+    i2: np.ndarray,
+    q3: np.ndarray,
+    i3: np.ndarray,
+    title: str,
+):
+    plt.figure(figsize=(10, 7))
+    frac = np.array([0.01, 0.03, 0.05, 0.07, 0.1])
+    q1_lower, q1_upper = q1 - i1, q1 + i1
+    q2_lower, q2_upper = q2 - i2, q2 + i2
+    q3_lower, q3_upper = q3 - i3, q3 + i3
+
+    # Plot Qini coefficients
+    plt.plot(frac, q1, label="LGBM", color="blue")
+    plt.fill_between(frac, q1_lower, q1_upper, color="blue", alpha=0.2)
+
+    plt.plot(frac, q2, label="MLP", color="red")
+    plt.fill_between(frac, q2_lower, q2_upper, color="red", alpha=0.2)
+
+    plt.plot(frac, q3, label="UpliftRF", color="green")
+    plt.fill_between(frac, q3_lower, q3_upper, color="green", alpha=0.2)
+
+    plt.xlabel("Fraction of participants")
+    plt.ylabel("Percentage decrease (%)")
+    plt.title(title)
+    plt.grid(True)
+    plt.legend()
+    plt.show()
+
+
+# %%
+# Strategy: Change V4 = 1 to 2
+plot_aca(
+    q1=np.array([12.86, 17.41, 21.57, 22.85, 26.00]),
+    i1=np.array([2.04, 2.55, 2.61, 2.99, 2.93]),
+    q2=np.array([30.71, 37.67, 33.47, 32.11, 47.69]),
+    i2=np.array([10.08, 8.34, 9.70, 9.47, 9.52]),
+    q3=np.array([-2.85, -2.52, -2.80, -0.67, -0.13]),
+    i3=np.array([0.79, 0.77, 0.84, 0.94, 0.88]),
+    title="Strategy 3: Change V4 = 1 to 2 - Qini Coefficient Decrease",
+)
+# %%
+plot_aca(
+    q1=np.array([18.70, 19.48, 19.97, 21.74, 20.70]),
+    i1=np.array([1.58, 2.06, 2.24, 2.37, 2.45]),
+    q2=np.array([32.52, 33.17, 33.02, 31.76, 31.9]),
+    i2=np.array([1.79, 1.32, 1.37, 1.37, 1.35]),
+    q3=np.array([61.91, 62.39, 62.59, 61.55, 60.65]),
+    i3=np.array([1.80, 1.75, 1.75, 1.85, 1.76]),
+    title="Strategy 3: Change V4 = 1 to 2 - Average Normalised Rank Decrease",
+)
+
+# %%

@@ -1,7 +1,10 @@
 import random
 from typing import List, Union
 
+# import matplotlib.pyplot as plt
 import pandas as pd
+
+# import seaborn as sns
 from causalml.inference.tree import UpliftRandomForestClassifier
 from lightgbm import LGBMClassifier
 from loguru import logger
@@ -74,6 +77,19 @@ def experiment(
     )
 
     collective_df = normalised_rank_df[normalised_rank_df["aca_flag"] == 1]
+
+    # plt.figure(figsize=(10, 7))
+    # sns.histplot(
+    #     data=collective_df,
+    #     x='normalised_rank',
+    #     bins=50, alpha=0.5, label='Before collective action', color='blue')
+    # sns.histplot(
+    #     data=collective_df,
+    #     x='normalised_rank_modified',
+    #     bins=50, alpha=0.5, label='After collective action', color='orange')
+    # plt.legend()
+    # plt.title('Normalised Rank Distribution Before and After Collective Action')
+    # plt.show()
 
     return {
         "qini_coeff": auqc,
