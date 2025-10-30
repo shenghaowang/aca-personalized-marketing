@@ -2,12 +2,14 @@ import random
 from typing import List, Union
 
 # import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
 # import seaborn as sns
 from causalml.inference.tree import UpliftRandomForestClassifier
 from lightgbm import LGBMClassifier
 from loguru import logger
+from scipy import stats
 from sklift.metrics import qini_auc_score
 
 from model.neuralnet import NeuralNetClassifier
@@ -78,6 +80,12 @@ def experiment(
 
     collective_df = normalised_rank_df[normalised_rank_df["aca_flag"] == 1]
 
+    # Perform paired t-test
+    ci_low, ci_high = paired_t_test(
+        before=collective_df["normalised_rank"].values,
+        after=collective_df["normalised_rank_modified"].values,
+    )
+
     # plt.figure(figsize=(10, 7))
     # sns.histplot(
     #     data=collective_df,
@@ -102,6 +110,8 @@ def experiment(
         "median_modified_normalised_rank": collective_df[
             "normalised_rank_modified"
         ].median(),
+        "ci_low": ci_low,
+        "ci_high": ci_high,
     }
 
 
@@ -129,3 +139,13 @@ def collective_action(
 
     df_sampled[attack_attr] = new_val
     return pd.concat([df_sampled, df_unsampled])
+
+
+def paired_t_test(before: np.ndarray, after: np.ndarray, confidence: float = 0.95):
+    D = before - after
+    n = len(D)
+    Dbar, sD = D.mean(), D.std(ddof=1)
+    SE = sD / np.sqrt(n)
+
+    ci_low, ci_high = stats.t.interval(confidence, df=n - 1, loc=Dbar, scale=SE)
+    return ci_low, ci_high
