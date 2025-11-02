@@ -1,5 +1,6 @@
 causalml
 hydra-core
+imbalanced-learn
 loguru
 matplotlib
 numpy
