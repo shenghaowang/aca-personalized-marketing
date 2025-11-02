@@ -8,5 +8,6 @@ lightgbm
 torch
 scikit-learn
 scikit-uplift
+scipy
 seaborn
 pre-commit

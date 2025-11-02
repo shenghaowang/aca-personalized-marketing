@@ -12,6 +12,7 @@ from tqdm import tqdm
 from data.starbucks import load_data
 from experiment.aca import experiment
 from metrics.ranking import plot_uplift_curve
+from model.feature_analysis import compute_shap_values, report_feature_contribution
 from model.model_type import ModelType, get_model_kwargs, init_model
 
 
@@ -60,6 +61,12 @@ def main(cfg: DictConfig):
             test_df["uplift"] = model.predict(X_test)
         case _:
             raise ValueError(f"Unsupported model type: {cfg.model}")
+
+    # Analyze feature importance
+    logger.info("Computing SHAP values for feature importance...")
+    shap_vals, X_used = compute_shap_values(model, X_train)
+    feature_impact_df = report_feature_contribution(shap_vals, X_used, feature_cols)
+    logger.info(f"Feature impact:\n{feature_impact_df}")
 
     auqc = qini_auc_score(test_df["purchase"], test_df["uplift"], test_df["treatment"])
     logger.info(f"Qini coefficient on test data: {auqc:.4f}")
