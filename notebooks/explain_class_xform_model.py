@@ -8,7 +8,7 @@ import shap
 import torch
 from loguru import logger
 
-from data.starbucks import load_data
+from data.data_loader import load_starbucks
 from model.model_type import init_model
 
 sys.path.append(str(Path.cwd().parent / "src"))

@@ -11,7 +11,7 @@ from sklift.metrics import qini_auc_score
 
 sys.path.append(str(Path.cwd().parent / "src"))
 
-from data.starbucks import load_data
+from data.data_loader import load_starbucks
 from metrics.ranking import number_responses, uplift_curve
 from model.model_type import init_model
 
@@ -24,7 +24,7 @@ if torch.cuda.is_available():
     torch.cuda.manual_seed_all(42)
 
 # %%
-train_df, test_df = load_data(
+train_df, test_df = load_starbucks(
     "../data/starbucks/training.csv", "../data/starbucks/test.csv"
 )
 
