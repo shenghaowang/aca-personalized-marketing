@@ -1,0 +1,5 @@
+name: uplift_rf
+
+# Uplift Random Forest hyperparameters
+n_estimators: 10
+random_state: 42

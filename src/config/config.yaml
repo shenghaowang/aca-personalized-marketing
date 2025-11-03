@@ -1,8 +1,7 @@
 defaults:
   - _self_
   - data: ???
-
-model: ???
+  - model: ???
 
 experiment:
   n_experiments: 100
@@ -10,4 +9,4 @@ experiment:
   attack_val: 1
   new_val: 2
   frac: 0.1
-  results_dir: results_${data.name}_${model}.csv
+  results_dir: results_${data.name}_${model.name}.csv
