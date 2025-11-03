@@ -1,0 +1,8 @@
+name: starbucks
+load_data_method: load_starbucks
+
+train_path: data/starbucks/training.csv
+test_path: data/starbucks/test.csv
+
+treatment_col: Promotion
+target_col: purchase
