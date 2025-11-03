@@ -136,3 +136,4 @@ dmypy.json
 data/
 
 !src/data/
+!src/config/data/
