@@ -3,6 +3,12 @@ defaults:
   - data: ???
   - model: ???
 
+# Model artifacts
+artifacts:
+  dir: artifacts
+  model_file: ${data.name}_${model.name}_model.pkl
+  features_file: ${data.name}_${model.name}_features.pkl
+
 experiment:
   n_experiments: 100
   attack_attr: V4
