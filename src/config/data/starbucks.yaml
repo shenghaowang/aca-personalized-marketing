@@ -6,3 +6,4 @@ test_path: data/starbucks/test.csv
 
 treatment_col: Promotion
 target_col: purchase
+control_name: "No"
