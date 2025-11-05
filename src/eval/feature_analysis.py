@@ -15,11 +15,19 @@ def compute_shap_values(model, X: np.ndarray):
         explainer = shap.Explainer(model)
         shap_values = explainer(X)
         X_used = X
+        X_original = X
 
     elif isinstance(model, NeuralNetClassifier):
         X_scaled = model.scaler.transform(X)
         X_bg = shap.kmeans(X_scaled, 100).data
-        X_sample = shap.utils.sample(X_scaled, 1000, 42)
+
+        # Sample from scaled data but track original indices
+        np.random.seed(42)
+        sample_indices = shap.utils.sample(
+            np.arange(X_scaled.shape[0]), 1000, random_state=42
+        )
+        X_sample = X_scaled[sample_indices]
+        X_original = X[sample_indices]  # Get original unscaled features
 
         # Convert to torch tensors
         bg_t = torch.tensor(X_bg, dtype=torch.float32)
@@ -32,7 +40,7 @@ def compute_shap_values(model, X: np.ndarray):
 
         # Ensure shap_values is 2D: (n_samples, n_features)
         shap_values = np.array(shap_values).squeeze()
-        X_used = X_sample
+        X_used = X_sample  # Normalized features for SHAP correlation
 
     elif isinstance(model, UpliftRandomForestClassifier):
         background = X[np.random.choice(X.shape[0], 100, replace=False)]
@@ -41,11 +49,12 @@ def compute_shap_values(model, X: np.ndarray):
         X_subset = X[:500]
         shap_values = explainer(X_subset)
         X_used = X_subset
+        X_original = X_subset
 
     else:
         raise ValueError(f"Unsupported model type for SHAP values: {type(model)}")
 
-    return shap_values, X_used
+    return shap_values, X_used, X_original
 
 
 def is_categorical_feature(feature_values: np.ndarray, threshold: int = 10) -> bool:
@@ -100,7 +109,19 @@ def propose_collective_action(
         return "N/A (no correlation)", np.nan, np.nan
 
 
-def report_feature_contribution(shap_values, X: np.ndarray, feature_cols: List[str]):
+def report_feature_contribution(
+    shap_values, X: np.ndarray, feature_cols: List[str], X_original: np.ndarray = None
+):
+    """
+    Report feature contributions and propose collective actions.
+
+    Args:
+        shap_values: SHAP values computed on (possibly normalized) features
+        X: Feature values used for computing SHAP (may be normalized for MLP)
+        feature_cols: List of feature names
+        X_original: Original unnormalized feature values for strategy proposals.
+                   If None, uses X for both correlation and strategy proposals.
+    """
     # Handle SHAP Explanation object
     if hasattr(shap_values, "values"):
         shap_array = shap_values.values
@@ -112,6 +133,9 @@ def report_feature_contribution(shap_values, X: np.ndarray, feature_cols: List[s
     else:
         shap_array = np.array(shap_values)
         X_data = X
+
+    # Use original features for strategy proposals if provided
+    X_for_strategy = X_original if X_original is not None else X_data
 
     # Mean SHAP value = directional impact
     mean_shap = shap_array.mean(axis=0)
@@ -128,12 +152,13 @@ def report_feature_contribution(shap_values, X: np.ndarray, feature_cols: List[s
 
     for i in range(len(feature_cols)):
         # Pearson correlation between feature column and its SHAP values
+        # Use X_data (normalized for MLP) for correlation calculation
         corr = np.corrcoef(X_data[:, i], shap_array[:, i])[0, 1]
         correlations.append(corr)
 
-        # Propose collective action strategy
+        # Propose collective action strategy using original feature values
         strategy, from_val, to_val = propose_collective_action(
-            X_data[:, i], corr, feature_cols[i]
+            X_for_strategy[:, i], corr, feature_cols[i]
         )
         strategies.append(strategy)
         from_values.append(from_val)

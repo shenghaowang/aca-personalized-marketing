@@ -69,8 +69,10 @@ def main(cfg: DictConfig):
     # Analyze feature importance
     logger.info("Computing SHAP values for feature importance...")
     X_train = train_df[feature_cols].values
-    shap_vals, X_used = compute_shap_values(model, X_train)
-    feature_impact_df = report_feature_contribution(shap_vals, X_used, feature_cols)
+    shap_vals, X_used, X_original = compute_shap_values(model, X_train)
+    feature_impact_df = report_feature_contribution(
+        shap_vals, X_used, feature_cols, X_original
+    )
     logger.info(f"Feature impact:\n{feature_impact_df}")
 
     # Save trained model
