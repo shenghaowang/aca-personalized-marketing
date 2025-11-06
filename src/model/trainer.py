@@ -54,6 +54,38 @@ def train_and_predict(
     return test_df
 
 
+def predict_uplift(
+    model: Union[LGBMClassifier, NeuralNetClassifier, UpliftRandomForestClassifier],
+    test_df: pd.DataFrame,
+    feature_cols: List[str],
+    model_name: str,
+) -> pd.DataFrame:
+    """Predict uplift scores using a pre-trained model.
+
+    Args:
+        model: Pre-trained model instance
+        test_df: Test dataframe
+        feature_cols: List of feature column names
+        model_name: Model type name (lgbm, mlp, uplift_rf)
+
+    Returns:
+        Test dataframe with 'uplift' column added
+    """
+    X_test = test_df[feature_cols].values
+
+    match model_name:
+        case ModelType.ClassTransformLGBM.value | ModelType.ClassTransformMLP.value:
+            # Class transformation models
+            test_df["uplift"] = 2 * model.predict_proba(X_test)[:, 1] - 1
+        case ModelType.UpliftRF.value:
+            # Uplift Random Forest
+            test_df["uplift"] = model.predict(X_test)
+        case _:
+            raise ValueError(f"Unsupported model type: {model_name}")
+
+    return test_df
+
+
 def save_model(
     model: Union[LGBMClassifier, NeuralNetClassifier, UpliftRandomForestClassifier],
     feature_cols: List[str],
