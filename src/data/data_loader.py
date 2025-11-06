@@ -44,6 +44,9 @@ def load_hillstrom(
     # Exclude mens' marketing data
     df = df[df["segment"] != "Mens E-Mail"]
 
+    # Create a ID column
+    df["ID"] = range(len(df))
+
     df["history_segment"] = df["history_segment"].apply(historic_segment_transform)
     df = pd.get_dummies(
         df, columns=["zip_code", "channel"], prefix=["zip_code", "channel"], dtype=int
@@ -68,7 +71,7 @@ def load_hillstrom(
         col
         for col in df.columns
         if col
-        not in (data_cfg.treatment_col, data_cfg.target_col, "treatment", "label")
+        not in (data_cfg.treatment_col, data_cfg.target_col, "ID", "treatment", "label")
     ]
 
     return train_df, test_df, feature_cols
