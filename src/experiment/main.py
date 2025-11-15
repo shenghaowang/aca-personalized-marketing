@@ -10,6 +10,15 @@ from tqdm import tqdm
 from experiment.aca import experiment
 from model.trainer import load_model, predict_uplift
 
+# Register a custom resolver to extract feature name from collective criterion
+OmegaConf.register_new_resolver(
+    "get_collective_feature",
+    lambda x: list(x[0].keys())[0] if x and len(x) > 0 else "unknown",
+)
+
+# Register a custom resolver to format frac as percentage
+OmegaConf.register_new_resolver("frac_to_pct", lambda x: f"{int(x * 100)}")
+
 
 @hydra.main(version_base=None, config_path="../config", config_name="config")
 def main(cfg: DictConfig):

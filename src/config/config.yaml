@@ -12,24 +12,24 @@ artifacts:
 experiment:
   n_experiments: 100
   # collective:
-  #   - V4: 1
+  #   - V4: =1
   # attack:
-  #   - V4: 2
+  #   - V4: =2
   # collective:
-  #   - channel_Multichannel: 0
+  #   - channel_Multichannel: =0
   # attack:
-  #   - channel_Multichannel: 1
-  #   - channel_Phone: 0
-  #   - channel_Web: 0
+  #   - channel_Multichannel: =1
+  #   - channel_Phone: =0
+  #   - channel_Web: =0
   # collective:
-  #   - zip_code_Surburban: 0
+  #   - zip_code_Surburban: =0
   # attack:
-  #   - zip_code_Surburban: 1
-  #   - zip_code_Rural: 0
-  #   - zip_code_Urban: 0
+  #   - zip_code_Surburban: =1
+  #   - zip_code_Rural: =0
+  #   - zip_code_Urban: =0
   collective:
-    - womens: 0
+    - womens: =0
   attack:
-    - womens: 1
+    - womens: =1
   frac: 0.1
-  results_dir: results_${data.name}_${model.name}.csv
+  results_dir: results/${data.name}_${model.name}_${get_collective_feature:experiment.collective}_p${frac_to_pct:experiment.frac}.csv
