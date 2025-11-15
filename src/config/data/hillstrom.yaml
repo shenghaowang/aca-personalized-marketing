@@ -1,0 +1,6 @@
+name: hillstrom
+load_data_method: load_hillstrom
+
+treatment_col: segment
+target_col: visit
+control_name: "No E-Mail"

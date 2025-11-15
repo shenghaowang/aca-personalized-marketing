@@ -12,7 +12,7 @@ from sklift.metrics import qini_auc_score
 
 sys.path.append(str(Path.cwd().parent / "src"))
 
-from data.starbucks import load_data
+from data.data_loader import load_starbucks
 from metrics.ranking import plot_uplift_curve
 from model.model_type import init_model
 

@@ -9,10 +9,12 @@ import pandas as pd
 from causalml.inference.tree import UpliftRandomForestClassifier
 from lightgbm import LGBMClassifier
 from loguru import logger
+from omegaconf import DictConfig
 from scipy import stats
 from sklift.metrics import qini_auc_score
 
 from model.neuralnet import NeuralNetClassifier
+from model.trainer import train_and_predict
 
 
 def experiment(
@@ -20,48 +22,54 @@ def experiment(
     train_df: pd.DataFrame,
     test_df: pd.DataFrame,
     feature_cols: List[str],
-    attack_attr: str,
-    attack_val: int,
-    new_val: int,
+    model_name: str,
+    data_cfg: DictConfig,
+    collective_criterion: dict,
+    attack_mappings: List[dict],
     frac: float = 0.1,
 ):
+    """
+    Run a single ACA experiment with given eligibility criteria and attack mappings.
+
+    Args:
+        model: Uplift model
+        train_df: Training dataframe
+        test_df: Test dataframe
+        feature_cols: List of feature column names
+        model_name: Name of the model
+        data_cfg: Data configuration
+        collective_criterion: Eligibility criteria for participation
+        attack_mappings: Feature value modifications to apply
+        frac: Fraction of eligible customers to participate
+    """
     train_df_modified = collective_action(
         df=train_df,
-        attack_attr=attack_attr,
-        attack_val=attack_val,
-        new_val=new_val,
+        collective_criterion=collective_criterion,
+        attack_mappings=attack_mappings,
         frac=frac,
     )
     test_df_modified = collective_action(
         df=test_df,
-        attack_attr=attack_attr,
-        attack_val=attack_val,
-        new_val=new_val,
+        collective_criterion=collective_criterion,
+        attack_mappings=attack_mappings,
         frac=frac,
     )
 
-    X_train_modified = train_df_modified[feature_cols].values
-    X_test_modified = test_df_modified[feature_cols].values
+    # Retrain model on perturbed data and predict uplift
+    test_df_modified = train_and_predict(
+        model=model,
+        train_df=train_df_modified,
+        test_df=test_df_modified,
+        feature_cols=feature_cols,
+        model_name=model_name,
+        data_cfg=data_cfg,
+    )
 
-    # Fit model and predict uplift based on model type
-    if isinstance(model, UpliftRandomForestClassifier):
-        # Uplift Random Forest model
-        t_train_modified = train_df_modified["Promotion"].values
-        y_train_modified = train_df_modified["purchase"].values
-        model.fit(X=X_train_modified, treatment=t_train_modified, y=y_train_modified)
-        test_df_modified["uplift"] = model.predict(X_test_modified)
-    else:
-        # Class transformation models (LGBM, MLP)
-        y_train_modified = train_df_modified["label"].values
-        model.fit(X_train_modified, y_train_modified)
-        test_df_modified["uplift"] = 2 * model.predict_proba(X_test_modified)[:, 1] - 1
-
-    # Convert treatment to binary for metric calculation
-    treatment_binary = (test_df_modified["Promotion"] == "Yes").astype(int)
+    # Calculate metric
     auqc = qini_auc_score(
-        test_df_modified["purchase"],
+        test_df_modified[data_cfg.target_col],
         test_df_modified["uplift"],
-        treatment_binary,
+        test_df_modified["treatment"],
     )
 
     test_df_modified["rank"] = (
@@ -71,8 +79,15 @@ def experiment(
         test_df_modified["rank"] / test_df_modified["rank"].max()
     )
 
+    # Extract feature names from attack mappings
+    attack_features = []
+    for mapping in attack_mappings:
+        attack_features.extend(mapping.keys())
+
+    # Include attack features in the merge to track original values
+    merge_cols = ["ID"] + attack_features + ["normalised_rank"]
     normalised_rank_df = pd.merge(
-        test_df[["ID", attack_attr, "normalised_rank"]],
+        test_df[merge_cols],
         test_df_modified[["ID", "normalised_rank", "aca_flag"]],
         on="ID",
         suffixes=["", "_modified"],
@@ -117,10 +132,32 @@ def experiment(
 
 # Strategies: V6 = 4 -> 1, V1 = 3 -> 0
 def collective_action(
-    df: pd.DataFrame, attack_attr: str, attack_val: int, new_val: int, frac: float = 0.1
+    df: pd.DataFrame,
+    collective_criterion: dict,
+    attack_mappings: List[dict],
+    frac: float = 0.1,
 ) -> pd.DataFrame:
-    # Sample the data by ID
-    collective_ids = df[df[attack_attr] == attack_val]["ID"].tolist()
+    """
+    Apply collective action by modifying feature values for eligible customers.
+
+    Args:
+        df: Input dataframe
+        collective_criterion: Dict defining eligibility (who can participate).
+                             Format: {feature_name: required_value}
+                             Example: {"V4": 1} means customers with V4=1
+        attack_mappings: List of dicts defining modifications (what to change).
+                        Each dict has feature name as key and new value.
+                        Example: [{"V4": 2}] means change V4 to 2
+        frac: Fraction of eligible customers to participate
+
+    Returns:
+        Modified dataframe with 'aca_flag' column
+    """
+    # Build condition to find eligible customers based on collective criterion
+    feature_name, required_value = list(collective_criterion.items())[0]
+    eligible_mask = df[feature_name] == required_value
+
+    collective_ids = df[eligible_mask]["ID"].tolist()
 
     # random.seed(42)
     sampled_ids = random.sample(collective_ids, int(len(collective_ids) * frac))
@@ -137,7 +174,11 @@ def collective_action(
         f"Sampled shape: {df_sampled.shape}, Unsampled shape: {df_unsampled.shape}"
     )
 
-    df_sampled[attack_attr] = new_val
+    # Apply all feature value modifications specified in attack mappings
+    for mapping in attack_mappings:
+        for feature_name, new_val in mapping.items():
+            df_sampled[feature_name] = new_val
+
     return pd.concat([df_sampled, df_unsampled])
 
 
