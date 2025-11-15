@@ -1,23 +1,39 @@
 import importlib
 
 import hydra
+import numpy as np
 import pandas as pd
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 from sklift.metrics import qini_auc_score
 from tqdm import tqdm
 
-from experiment.aca import experiment
+from experiment.aca import CollectiveAction, experiment
 from model.trainer import load_model, predict_uplift
 
-# Register a custom resolver to extract feature name from collective criterion
-OmegaConf.register_new_resolver(
-    "get_collective_feature",
-    lambda x: list(x[0].keys())[0] if x and len(x) > 0 else "unknown",
-)
 
-# Register a custom resolver to format frac as percentage
-OmegaConf.register_new_resolver("frac_to_pct", lambda x: f"{int(x * 100)}")
+# Register custom resolvers - use replace=True to handle Hydra module reloading
+def get_collective_feature(collective_list):
+    """Extract feature name from collective criterion list."""
+    if not collective_list or len(collective_list) == 0:
+        raise ValueError("collective_list is empty or None")
+
+    first_item = collective_list[0]
+    keys = list(first_item.keys())
+    return keys[0]
+
+
+if not OmegaConf.has_resolver("get_collective_feature"):
+    OmegaConf.register_new_resolver(
+        "get_collective_feature",
+        get_collective_feature,
+    )
+
+if not OmegaConf.has_resolver("frac_to_pct"):
+    OmegaConf.register_new_resolver(
+        "frac_to_pct",
+        lambda frac_value: str(int(frac_value * 100)),
+    )
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="config")
@@ -59,9 +75,18 @@ def main(cfg: DictConfig):
     results_list = []
     n_experiments = cfg.experiment.n_experiments
 
-    # Get collective criterion and attack mappings from config
-    collective_criterion = cfg.experiment.collective[0]  # Single eligibility criterion
-    attack_mappings = cfg.experiment.attack
+    # Get collective criterion and attack recipe from config
+    action = CollectiveAction(
+        collective_criterion=cfg.experiment.collective[
+            0
+        ],  # Single eligibility criterion
+        attacks=cfg.experiment.attack,
+        frac=cfg.experiment.frac,
+    )
+
+    # Generate random seeds for each experiment
+    np.random.seed(42)
+    seeds = np.random.randint(0, 10000, size=n_experiments)
 
     for i in tqdm(range(n_experiments)):
         logger.info(f"Experiment {i+1}/{n_experiments}")
@@ -72,9 +97,8 @@ def main(cfg: DictConfig):
             feature_cols=feature_cols,
             model_name=cfg.model.name,
             data_cfg=cfg.data,
-            collective_criterion=collective_criterion,
-            attack_mappings=attack_mappings,
-            frac=cfg.experiment.frac,
+            action=action,
+            seed=int(seeds[i]),
         )
         logger.debug(res)
         results_list.append(res)
