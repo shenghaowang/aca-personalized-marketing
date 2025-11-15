@@ -17,7 +17,9 @@ from model.trainer import save_model, train_and_predict
 @hydra.main(version_base=None, config_path="../config", config_name="config")
 def main(cfg: DictConfig):
     """Main training script for uplift models."""
-    logger.info(OmegaConf.to_yaml(cfg, resolve=True))
+    # Log config without experiment section (which has custom resolvers)
+    log_cfg = {k: v for k, v in cfg.items() if k != "experiment"}
+    logger.info(OmegaConf.to_yaml(log_cfg, resolve=True))
 
     # Set random seeds for reproducibility
     random.seed(42)
