@@ -31,5 +31,5 @@ experiment:
     - womens: =0
   attack:
     - womens: =1
-  frac: 0.1
-  results_dir: results/${data.name}_${model.name}_${get_collective_feature:experiment.collective}_p${frac_to_pct:experiment.frac}.csv
+  frac: 0.02
+  results_dir: results/${data.name}_${model.name}_${get_collective_feature:${experiment.collective}}_p${frac_to_pct:${experiment.frac}}.csv
