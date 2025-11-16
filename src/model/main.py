@@ -1,9 +1,6 @@
 import importlib
-import random
 
 import hydra
-import numpy as np
-import torch
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 from sklift.metrics import qini_auc_score
@@ -12,21 +9,19 @@ from eval.feature_analysis import compute_shap_values, report_feature_contributi
 from eval.ranking import plot_uplift_curve
 from model.model_type import init_model
 from model.trainer import save_model, train_and_predict
+from utils.seed_utils import set_seed
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="config")
 def main(cfg: DictConfig):
     """Main training script for uplift models."""
-    # Log config without experiment section (which has custom resolvers)
-    log_cfg = {k: v for k, v in cfg.items() if k != "experiment"}
-    logger.info(OmegaConf.to_yaml(log_cfg, resolve=True))
+
+    # Skip the experiment config
+    cfg = {k: v for k, v in cfg.items() if k != "experiment"}
+    logger.info(OmegaConf.to_yaml(cfg, resolve=True))
 
     # Set random seeds for reproducibility
-    random.seed(42)
-    np.random.seed(42)
-    torch.manual_seed(42)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(42)
+    set_seed()
 
     # Load data
     data_loader = importlib.import_module("data.data_loader")

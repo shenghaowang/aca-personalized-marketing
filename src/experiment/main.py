@@ -1,5 +1,4 @@
 import importlib
-import random
 
 import hydra
 import numpy as np
@@ -13,6 +12,7 @@ from tqdm import tqdm
 from experiment.aca import CollectiveAction, experiment
 from model.model_type import init_model
 from model.trainer import load_model, predict_uplift
+from utils.seed_utils import set_seed
 
 torch.set_num_threads(1)
 
@@ -96,11 +96,7 @@ def main(cfg: DictConfig):
         logger.info(f"Experiment {i+1}/{n_experiments}")
 
         # Set random seeds for reproducibility
-        random.seed(42)
-        np.random.seed(42)
-        torch.manual_seed(42)
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed_all(42)
+        set_seed()
 
         # Initialize a fresh model for each experiment
         model = init_model(
