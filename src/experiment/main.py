@@ -116,6 +116,8 @@ def main(cfg: DictConfig):
             action=action,
             seed=int(seeds[i]),
         )
+        res["baseline_qini_coeff"] = auqc
+
         logger.debug(res)
         results_list.append(res)
 
