@@ -19,7 +19,6 @@ def plot_pct_decrease(
     plt.figure(figsize=(10, 7))
     frac = np.array(range(11)) / 100
 
-    # Plot Qini coefficients
     for i, model_name in enumerate(model_names):
         plt.plot(frac, avg[i], label=model_labels[model_name], color=colors[model_name])
 
