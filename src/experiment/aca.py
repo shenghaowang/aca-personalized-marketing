@@ -131,6 +131,10 @@ def experiment(
     # plt.show()
 
     return {
+        "dataset": data_cfg.name,
+        "model": model_name,
+        "target_feature": action.feature,
+        "frac": action.frac,
         "qini_coeff": auqc,
         "num_participants": collective_df.shape[0],
         "avg_normalised_rank": collective_df["normalised_rank"].mean(),
