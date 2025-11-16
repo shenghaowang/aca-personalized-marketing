@@ -11,6 +11,7 @@ from sklift.metrics import qini_auc_score
 
 from eval.ranking import number_responses, uplift_curve
 from model.trainer import predict_uplift
+from utils.plot_utils import colors, model_labels
 
 torch.set_num_threads(1)
 
@@ -32,8 +33,6 @@ def main(cfg: DictConfig):
 
     # Define model types to plot
     model_types = ["lgbm", "mlp", "uplift_rf"]
-    model_labels = {"lgbm": "CT-LGBM", "mlp": "CT-MLP", "uplift_rf": "Uplift-RF"}
-    colors = {"lgbm": "red", "mlp": "blue", "uplift_rf": "orange"}
 
     # Create figure
     _, ax = plt.subplots(figsize=(10, 7))
