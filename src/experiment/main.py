@@ -23,8 +23,8 @@ def get_collective_feature(collective_list):
     if not collective_list or len(collective_list) == 0:
         raise ValueError("collective_list is empty or None")
 
-    first_item = collective_list[0]
-    keys = list(first_item.keys())
+    target_feature = collective_list[0]
+    keys = list(target_feature.keys())
     return keys[0]
 
 
