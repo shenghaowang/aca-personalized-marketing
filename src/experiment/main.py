@@ -1,15 +1,20 @@
 import importlib
+import random
 
 import hydra
 import numpy as np
 import pandas as pd
+import torch
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 from sklift.metrics import qini_auc_score
 from tqdm import tqdm
 
 from experiment.aca import CollectiveAction, experiment
+from model.model_type import init_model
 from model.trainer import load_model, predict_uplift
+
+torch.set_num_threads(1)
 
 
 # Register custom resolvers - use replace=True to handle Hydra module reloading
@@ -70,11 +75,6 @@ def main(cfg: DictConfig):
     )
     test_df["normalised_rank"] = test_df["rank"] / test_df["rank"].max()
 
-    # Run ACA experiments with the loaded model
-    logger.info(f"Starting {cfg.experiment.n_experiments} ACA experiments...")
-    results_list = []
-    n_experiments = cfg.experiment.n_experiments
-
     # Get collective criterion and attack recipe from config
     action = CollectiveAction(
         collective_criterion=cfg.experiment.collective[
@@ -86,10 +86,30 @@ def main(cfg: DictConfig):
 
     # Generate random seeds for each experiment
     np.random.seed(42)
+    n_experiments = cfg.experiment.n_experiments
     seeds = np.random.randint(0, 10000, size=n_experiments)
 
+    # Run ACA experiments
+    logger.info(f"Starting {n_experiments} ACA experiments...")
+    results_list = []
     for i in tqdm(range(n_experiments)):
         logger.info(f"Experiment {i+1}/{n_experiments}")
+
+        # Set random seeds for reproducibility
+        random.seed(42)
+        np.random.seed(42)
+        torch.manual_seed(42)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(42)
+
+        # Initialize a fresh model for each experiment
+        model = init_model(
+            model_cfg=cfg.model,
+            input_dim=len(feature_cols),
+            control_name=(
+                cfg.data.control_name if hasattr(cfg.data, "control_name") else None
+            ),
+        )
         res = experiment(
             model=model,
             train_df=train_df,
