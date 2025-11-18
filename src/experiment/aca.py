@@ -215,7 +215,7 @@ def apply_action(
                 new_val = df_sampled[feature] + val
 
             elif operator == "-":
-                new_val = df_sampled[feature] - val
+                new_val = (df_sampled[feature] - val).clip(lower=0)
 
             else:
                 raise ValueError(
