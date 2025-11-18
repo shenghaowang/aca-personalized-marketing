@@ -1,6 +1,6 @@
 import random
 from dataclasses import dataclass
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Union
 
 # import matplotlib.pyplot as plt
 import numpy as np
@@ -41,54 +41,59 @@ class CollectiveAction:
             self.attack_features.extend(attack.keys())
 
 
-def experiment(
-    model: Union[LGBMClassifier, NeuralNetClassifier, UpliftRandomForestClassifier],
-    train_df: pd.DataFrame,
-    test_df: pd.DataFrame,
-    feature_cols: List[str],
-    model_name: str,
-    data_cfg: DictConfig,
-    action: CollectiveAction,
-    seed: int = 42,
-):
+@dataclass
+class ExperimentInput:
+    untrained_model: Union[
+        LGBMClassifier, NeuralNetClassifier, UpliftRandomForestClassifier
+    ]
+    train_df: pd.DataFrame
+    test_df: pd.DataFrame
+    feature_cols: List[str]
+    model_name: str
+    data_cfg: DictConfig
+    action: CollectiveAction
+    seed: int = 42
+
+
+def rank_users_after_action(input: ExperimentInput) -> Tuple[pd.DataFrame, float]:
     """
-    Run a single ACA experiment with given eligibility criteria and attack mappings.
+    Rank users by uplift before and after collective action, returning comparison dataframes.
 
     Args:
-        model: Uplift model
-        train_df: Training dataframe
-        test_df: Test dataframe
-        feature_cols: List of feature column names
-        model_name: Name of the model
-        data_cfg: Data configuration
-        collective_criterion: Eligibility criteria for participation
-        attack_mappings: Feature value modifications to apply
-        frac: Fraction of eligible customers to participate
+        input: ExperimentInput object containing all necessary inputs
+        action: CollectiveAction object with criteria and attacks
+        seed: Random seed for reproducibility
+
+    Returns:
+        tuple: (normalised_rank_df, collective_df, auqc)
+            - normalised_rank_df: Full comparison dataframe with before/after values
+            - collective_df: Subset of participants in collective action
+            - auqc: Qini coefficient after collective action
     """
     train_df_modified = apply_action(
-        df=train_df,
-        action=action,
-        seed=seed,
+        df=input.train_df,
+        action=input.action,
+        seed=input.seed,
     )
     test_df_modified = apply_action(
-        df=test_df,
-        action=action,
-        seed=seed,
+        df=input.test_df,
+        action=input.action,
+        seed=input.seed,
     )
 
     # Retrain model on perturbed data and predict uplift
     test_df_modified = train_and_predict(
-        model=model,
+        model=input.untrained_model,
         train_df=train_df_modified,
         test_df=test_df_modified,
-        feature_cols=feature_cols,
-        model_name=model_name,
-        data_cfg=data_cfg,
+        feature_cols=input.feature_cols,
+        model_name=input.model_name,
+        data_cfg=input.data_cfg,
     )
 
     # Calculate metric
     auqc = qini_auc_score(
-        test_df_modified[data_cfg.target_col],
+        test_df_modified[input.data_cfg.target_col],
         test_df_modified["uplift"],
         test_df_modified["treatment"],
     )
@@ -100,15 +105,29 @@ def experiment(
         test_df_modified["rank"] / test_df_modified["rank"].max()
     )
 
-    # Include attack features in the merge to track original values
-    merge_cols = ["ID"] + action.attack_features + ["normalised_rank"]
+    # Include attack features and uplift in the merge to track original values
+    merge_cols = ["ID"] + input.action.attack_features + ["normalised_rank", "uplift"]
     normalised_rank_df = pd.merge(
-        test_df[merge_cols],
-        test_df_modified[["ID", "normalised_rank", "aca_flag"]],
+        input.test_df[merge_cols],
+        test_df_modified[["ID", "normalised_rank", "uplift", "aca_flag"]],
         on="ID",
         suffixes=["", "_modified"],
     )
 
+    return normalised_rank_df, auqc
+
+
+def experiment(input: ExperimentInput) -> Dict[str, Union[str, float, int]]:
+    """
+    Run a single ACA experiment and return summary metrics.
+
+    Args:
+        input: ExperimentInput object containing all necessary inputs
+
+    Returns:
+        dict: Summary metrics from the experiment
+    """
+    normalised_rank_df, auqc = rank_users_after_action(input=input)
     collective_df = normalised_rank_df[normalised_rank_df["aca_flag"] == 1]
 
     # Perform paired t-test
@@ -117,24 +136,11 @@ def experiment(
         after=collective_df["normalised_rank_modified"].values,
     )
 
-    # plt.figure(figsize=(10, 7))
-    # sns.histplot(
-    #     data=collective_df,
-    #     x='normalised_rank',
-    #     bins=50, alpha=0.5, label='Before collective action', color='blue')
-    # sns.histplot(
-    #     data=collective_df,
-    #     x='normalised_rank_modified',
-    #     bins=50, alpha=0.5, label='After collective action', color='orange')
-    # plt.legend()
-    # plt.title('Normalised Rank Distribution Before and After Collective Action')
-    # plt.show()
-
     return {
-        "dataset": data_cfg.name,
-        "model": model_name,
-        "target_feature": action.feature,
-        "frac": action.frac,
+        "dataset": input.data_cfg.name,
+        "model": input.model_name,
+        "target_feature": input.action.feature,
+        "frac": input.action.frac,
         "qini_coeff": auqc,
         "num_participants": collective_df.shape[0],
         "avg_normalised_rank": collective_df["normalised_rank"].mean(),
