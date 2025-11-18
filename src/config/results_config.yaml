@@ -1,0 +1,11 @@
+defaults:
+  - _self_
+  - data: ???
+
+results_dir: results
+file_path: ${data.name}_*.csv
+agg_results_file: ${results_dir}/${data.name}_agg_results.csv
+
+artifacts_dir: artifacts
+avg_norm_rank_chart: ${data.name}_{feature}_avg_norm_rank_chart.png
+qini_coeff_chart: ${data.name}_{feature}_qini_coeff_chart.png

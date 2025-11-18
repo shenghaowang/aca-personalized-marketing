@@ -1,5 +1,6 @@
 import random
-from typing import List, Union
+from dataclasses import dataclass
+from typing import Dict, List, Union
 
 # import matplotlib.pyplot as plt
 import numpy as np
@@ -17,6 +18,29 @@ from model.neuralnet import NeuralNetClassifier
 from model.trainer import train_and_predict
 
 
+@dataclass
+class CollectiveAction:
+    collective_criterion: Dict[str, str]
+    attacks: List[Dict[str, str]]
+    frac: float
+
+    # Derived attributes
+    feature: str = None
+    operator: str = None
+    threshold: float = None
+    attack_features: List[str] = None
+
+    def __post_init__(self):
+        """Compute derived attributes from the base attributes."""
+        # Extract feature name, operator, and threshold from collective_criterion
+        self.feature, eligible_criterion = list(self.collective_criterion.items())[0]
+        self.operator = eligible_criterion[0]
+        self.threshold = float(eligible_criterion[1:])
+        self.attack_features = []
+        for attack in self.attacks:
+            self.attack_features.extend(attack.keys())
+
+
 def experiment(
     model: Union[LGBMClassifier, NeuralNetClassifier, UpliftRandomForestClassifier],
     train_df: pd.DataFrame,
@@ -24,9 +48,8 @@ def experiment(
     feature_cols: List[str],
     model_name: str,
     data_cfg: DictConfig,
-    collective_criterion: dict,
-    attack_mappings: List[dict],
-    frac: float = 0.1,
+    action: CollectiveAction,
+    seed: int = 42,
 ):
     """
     Run a single ACA experiment with given eligibility criteria and attack mappings.
@@ -42,17 +65,15 @@ def experiment(
         attack_mappings: Feature value modifications to apply
         frac: Fraction of eligible customers to participate
     """
-    train_df_modified = collective_action(
+    train_df_modified = apply_action(
         df=train_df,
-        collective_criterion=collective_criterion,
-        attack_mappings=attack_mappings,
-        frac=frac,
+        action=action,
+        seed=seed,
     )
-    test_df_modified = collective_action(
+    test_df_modified = apply_action(
         df=test_df,
-        collective_criterion=collective_criterion,
-        attack_mappings=attack_mappings,
-        frac=frac,
+        action=action,
+        seed=seed,
     )
 
     # Retrain model on perturbed data and predict uplift
@@ -79,13 +100,8 @@ def experiment(
         test_df_modified["rank"] / test_df_modified["rank"].max()
     )
 
-    # Extract feature names from attack mappings
-    attack_features = []
-    for mapping in attack_mappings:
-        attack_features.extend(mapping.keys())
-
     # Include attack features in the merge to track original values
-    merge_cols = ["ID"] + attack_features + ["normalised_rank"]
+    merge_cols = ["ID"] + action.attack_features + ["normalised_rank"]
     normalised_rank_df = pd.merge(
         test_df[merge_cols],
         test_df_modified[["ID", "normalised_rank", "aca_flag"]],
@@ -115,6 +131,10 @@ def experiment(
     # plt.show()
 
     return {
+        "dataset": data_cfg.name,
+        "model": model_name,
+        "target_feature": action.feature,
+        "frac": action.frac,
         "qini_coeff": auqc,
         "num_participants": collective_df.shape[0],
         "avg_normalised_rank": collective_df["normalised_rank"].mean(),
@@ -130,12 +150,10 @@ def experiment(
     }
 
 
-# Strategies: V6 = 4 -> 1, V1 = 3 -> 0
-def collective_action(
+def apply_action(
     df: pd.DataFrame,
-    collective_criterion: dict,
-    attack_mappings: List[dict],
-    frac: float = 0.1,
+    action: CollectiveAction,
+    seed: int = 42,
 ) -> pd.DataFrame:
     """
     Apply collective action by modifying feature values for eligible customers.
@@ -153,14 +171,26 @@ def collective_action(
     Returns:
         Modified dataframe with 'aca_flag' column
     """
-    # Build condition to find eligible customers based on collective criterion
-    feature_name, required_value = list(collective_criterion.items())[0]
-    eligible_mask = df[feature_name] == required_value
+
+    # Apply operator to build eligibility mask
+    if action.operator == "=":
+        eligible_mask = df[action.feature] == action.threshold
+
+    elif action.operator == ">":
+        eligible_mask = df[action.feature] > action.threshold
+
+    elif action.operator == "<":
+        eligible_mask = df[action.feature] < action.threshold
+
+    else:
+        raise ValueError(
+            f"Unsupported operator: {action.operator}. Use '=', '>', or '<'."
+        )
 
     collective_ids = df[eligible_mask]["ID"].tolist()
 
-    # random.seed(42)
-    sampled_ids = random.sample(collective_ids, int(len(collective_ids) * frac))
+    random.seed(seed)
+    sampled_ids = random.sample(collective_ids, int(len(collective_ids) * action.frac))
     logger.info(
         f"Number of customers who participate in the collective action: {len(sampled_ids)}"
     )
@@ -175,9 +205,23 @@ def collective_action(
     )
 
     # Apply all feature value modifications specified in attack mappings
-    for mapping in attack_mappings:
-        for feature_name, new_val in mapping.items():
-            df_sampled[feature_name] = new_val
+    for attack in action.attacks:
+        for feature, attack_strategy in attack.items():
+            operator, val = attack_strategy[0], float(attack_strategy[1:])
+            if operator == "=":
+                new_val = val
+
+            elif operator == "+":
+                new_val = df_sampled[feature] + val
+
+            elif operator == "-":
+                new_val = (df_sampled[feature] - val).clip(lower=0)
+
+            else:
+                raise ValueError(
+                    f"Unsupported attack operator: {operator}. Use '=', '+', or '-'."
+                )
+            df_sampled.loc[:, feature] = new_val
 
     return pd.concat([df_sampled, df_unsampled])
 

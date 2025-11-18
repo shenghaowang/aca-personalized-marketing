@@ -10,7 +10,22 @@ from lightgbm import LGBMClassifier
 from model.neuralnet import NeuralNetClassifier
 
 
-def compute_shap_values(model, X: np.ndarray):
+def compute_shap_values(model, X: np.ndarray, seed: int = 42):
+    """
+    Compute SHAP values for a given model with reproducible results.
+
+    Args:
+        model: Trained model (LGBM, MLP, or UpliftRF)
+        X: Input features
+        seed: Random seed for reproducibility
+
+    Returns:
+        Tuple of (shap_values, X_used, X_original)
+    """
+    # Set random seeds for reproducibility
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+
     if isinstance(model, LGBMClassifier):
         explainer = shap.Explainer(model)
         shap_values = explainer(X)
@@ -19,19 +34,28 @@ def compute_shap_values(model, X: np.ndarray):
 
     elif isinstance(model, NeuralNetClassifier):
         X_scaled = model.scaler.transform(X)
+
+        # Use deterministic k-means clustering for background
+        # Note: shap.kmeans uses sklearn's KMeans which respects np.random.seed
         X_bg = shap.kmeans(X_scaled, 100).data
 
-        # Sample from scaled data but track original indices
-        np.random.seed(42)
-        sample_indices = shap.utils.sample(
-            np.arange(X_scaled.shape[0]), 1000, random_state=42
+        # Sample from scaled data
+        n_samples = min(1000, X_scaled.shape[0])
+        sample_indices = np.random.choice(
+            X_scaled.shape[0], size=n_samples, replace=False
         )
+        sample_indices = np.sort(sample_indices)  # Sort for deterministic ordering
+
         X_sample = X_scaled[sample_indices]
         X_original = X[sample_indices]  # Get original unscaled features
 
         # Convert to torch tensors
         bg_t = torch.tensor(X_bg, dtype=torch.float32)
         sample_t = torch.tensor(X_sample, dtype=torch.float32)
+
+        # Set model to eval mode for deterministic behavior
+        model.model.eval()
+
         explainer = shap.GradientExplainer(model.model, bg_t)
         shap_values = explainer.shap_values(sample_t)
 
@@ -43,10 +67,22 @@ def compute_shap_values(model, X: np.ndarray):
         X_used = X_sample  # Normalized features for SHAP correlation
 
     elif isinstance(model, UpliftRandomForestClassifier):
-        background = X[np.random.choice(X.shape[0], 100, replace=False)]
+        # Use deterministic background sampling
+        n_background = min(100, X.shape[0])
+        background_indices = np.random.choice(
+            X.shape[0], size=n_background, replace=False
+        )
+        background_indices = np.sort(background_indices)
+        background = X[background_indices]
 
-        explainer = shap.PermutationExplainer(model.predict, background)
-        X_subset = X[:500]
+        # PermutationExplainer has internal randomness - need to set seed in masker
+        explainer = shap.PermutationExplainer(
+            model.predict, background, seed=seed  # Control permutation randomness
+        )
+
+        # Use first N samples deterministically
+        n_subset = min(500, X.shape[0])
+        X_subset = X[:n_subset]
         shap_values = explainer(X_subset)
         X_used = X_subset
         X_original = X_subset
@@ -86,27 +122,46 @@ def propose_collective_action(
     Returns:
         Tuple of (strategy_description, from_value, to_value)
     """
+    if correlation == 0:
+        return "N/A (no correlation)", np.nan, np.nan
+
     # Check if feature is categorical
-    if not is_categorical_feature(feature_values):
-        return "N/A (continuous feature)", np.nan, np.nan
+    if is_categorical_feature(feature_values):
+        min_val = feature_values.min()
+        max_val = feature_values.max()
 
-    min_val = feature_values.min()
-    max_val = feature_values.max()
+        # Positive correlation: higher values lead to higher SHAP (positive impact)
+        # Strategy: modify min to max to increase positive impact
+        if correlation > 0:
+            strategy = f"Modify {feature_name} from {min_val} to {max_val}"
+            return strategy, min_val, max_val
 
-    # Positive correlation: higher values lead to higher SHAP (positive impact)
-    # Strategy: modify min to max to increase positive impact
-    if correlation > 0:
-        strategy = f"Modify {feature_name} from {min_val} to {max_val}"
-        return strategy, min_val, max_val
-
-    # Negative correlation: higher values lead to lower/negative SHAP
-    # Strategy: modify max to min to reduce negative impact
-    elif correlation < 0:
-        strategy = f"Modify {feature_name} from {max_val} to {min_val}"
-        return strategy, max_val, min_val
+        # Negative correlation: higher values lead to lower/negative SHAP
+        # Strategy: modify max to min to reduce negative impact
+        else:
+            strategy = f"Modify {feature_name} from {max_val} to {min_val}"
+            return strategy, max_val, min_val
 
     else:
-        return "N/A (no correlation)", np.nan, np.nan
+        # For continuous features, compute offset based on percentiles
+        p10 = np.percentile(feature_values, 10)
+        p90 = np.percentile(feature_values, 90)
+
+        if correlation > 0:
+            p20 = np.percentile(feature_values, 20)
+            strategy = (
+                f"Increase {feature_name} by {p90 - p10:.2f} for values below {p20:.2f}"
+            )
+
+            return strategy, p10, p90
+
+        else:
+            p80 = np.percentile(feature_values, 80)
+            strategy = (
+                f"Decrease {feature_name} by {p90 - p10:.2f} for values above {p80:.2f}"
+            )
+
+            return strategy, p90, p10
 
 
 def report_feature_contribution(
@@ -179,7 +234,7 @@ def report_feature_contribution(
                 "to_value": to_values,
             }
         )
-        .sort_values("importance", ascending=False)
+        .sort_values("correlation", ascending=False)
         .reset_index(drop=True)
     )
 

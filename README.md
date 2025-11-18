@@ -30,3 +30,37 @@ pre-commit run --all-files
 ```
 
 ---
+
+## 🔥 Usage
+
+### Train and export uplift model
+
+```bash
+export PYTHONPATH=src
+python src/model/main.py data=<dataset_name> model=<model_type>
+```
+
+Supported dataset names:
+
+* `starbucks`: Starbucks Dataset
+* `hillstrom`: [Kevin Hillstrom Dataset](https://blog.minethatdata.com/2008/03/minethatdata-e-mail-analytics-and-data.html)
+
+Supported model types:
+
+* `lgbm`: LightGBM Class Transformation model
+* `mlp`: Multi-Layer Perceptron Class Transformation model
+* `uplift_rf`: Uplift Random Forest
+
+### Conduct ACA experiments
+
+```bash
+export PYTHONPATH=src
+python src/experiment/main.py data=<dataset_name> model=<model_type>
+```
+
+### Compare Uplift Models with Qini Curves
+
+```bash
+export PYTHONPATH=src
+python src/model/plot_qini_curves.py data=<dataset_name>
+```

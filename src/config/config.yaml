@@ -8,28 +8,39 @@ artifacts:
   dir: artifacts
   model_file: ${data.name}_${model.name}_model.pkl
   features_file: ${data.name}_${model.name}_features.pkl
+  qini_curves: ${data.name}_qini_curves.pkl
 
 experiment:
   n_experiments: 100
-  # collective:
-  #   - V4: 1
-  # attack:
-  #   - V4: 2
-  # collective:
-  #   - channel_Multichannel: 0
-  # attack:
-  #   - channel_Multichannel: 1
-  #   - channel_Phone: 0
-  #   - channel_Web: 0
-  # collective:
-  #   - zip_code_Surburban: 0
-  # attack:
-  #   - zip_code_Surburban: 1
-  #   - zip_code_Rural: 0
-  #   - zip_code_Urban: 0
   collective:
-    - womens: 0
+    - V4: =1
   attack:
-    - womens: 1
-  frac: 0.1
-  results_dir: results_${data.name}_${model.name}.csv
+    - V4: =2
+  # collective:
+  #   - channel_Multichannel: =0
+  # attack:
+  #   - channel_Multichannel: =1
+  #   - channel_Phone: =0
+  #   - channel_Web: =0
+  # collective:
+  #   - channel_Phone: =1
+  # attack:
+  #   - channel_Multichannel: =1
+  #   - channel_Phone: =0
+  #   - channel_Web: =0
+  # collective:
+  #   - zip_code_Surburban: =0
+  # attack:
+  #   - zip_code_Surburban: =1
+  #   - zip_code_Rural: =0
+  #   - zip_code_Urban: =0
+  # collective:
+  #   - newbie: =0
+  # attack:
+  #   - newbie: =1
+  # collective:
+  #   - recency: "<2"
+  # attack:
+  #   - recency: "+9"
+  frac: 0.02
+  results_dir: results/${data.name}_${model.name}_${get_collective_feature:${experiment.collective}}_p${frac_to_pct:${experiment.frac}}.csv
