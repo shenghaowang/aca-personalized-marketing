@@ -16,9 +16,9 @@ from utils.seed_utils import set_seed
 def main(cfg: DictConfig):
     """Main training script for uplift models."""
 
-    # Skip the experiment config
-    cfg = {k: v for k, v in cfg.items() if k != "experiment"}
-    logger.info(OmegaConf.to_yaml(cfg, resolve=True))
+    # Log config without experiment section (which has custom resolvers)
+    log_cfg = {k: v for k, v in cfg.items() if k != "experiment"}
+    logger.info(OmegaConf.to_yaml(log_cfg, resolve=True))
 
     # Set random seeds for reproducibility
     set_seed()
