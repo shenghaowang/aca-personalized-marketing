@@ -153,13 +153,15 @@ def propose_collective_action(
                 f"Increase {feature_name} by {p90 - p10:.2f} for values below {p20:.2f}"
             )
 
+            return strategy, p10, p90
+
         else:
             p80 = np.percentile(feature_values, 80)
             strategy = (
                 f"Decrease {feature_name} by {p90 - p10:.2f} for values above {p80:.2f}"
             )
 
-        return strategy, p10, p90
+            return strategy, p90, p10
 
 
 def report_feature_contribution(
@@ -232,7 +234,7 @@ def report_feature_contribution(
                 "to_value": to_values,
             }
         )
-        .sort_values("importance", ascending=False)
+        .sort_values("correlation", ascending=False)
         .reset_index(drop=True)
     )
 
