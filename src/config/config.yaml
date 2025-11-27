@@ -12,10 +12,10 @@ artifacts:
 
 experiment:
   n_experiments: 100
-  collective:
-    - V4: =1
-  attack:
-    - V4: =2
+  # collective:
+  #   - V4: =1
+  # attack:
+  #   - V4: =2
   # collective:
   #   - channel_Multichannel: =0
   # attack:
@@ -42,5 +42,9 @@ experiment:
   #   - recency: "<2"
   # attack:
   #   - recency: "+9"
-  frac: 0.02
+  collective:
+    - history: ">382"
+  attack:
+    - history: "-507.92"
+  frac: 0.1
   results_dir: results/${data.name}_${model.name}_${get_collective_feature:${experiment.collective}}_p${frac_to_pct:${experiment.frac}}.csv
