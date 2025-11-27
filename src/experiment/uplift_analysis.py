@@ -83,6 +83,7 @@ def main(cfg: DictConfig):
         seed=42,
     )
     normalised_rank_df, auqc_modified = rank_users_after_action(input=experiment_input)
+    logger.debug(f"Number of users after action: {normalised_rank_df.shape[0]}")
 
     logger.info(f"Modified Qini coefficient: {auqc_modified:.4f}")
     logger.info(f"Qini coefficient change: {auqc_modified - auqc:.4f}")
@@ -98,9 +99,11 @@ def main(cfg: DictConfig):
     compare_distributions(
         before=normalised_rank_df["uplift"].values,
         after=normalised_rank_df["uplift_modified"].values,
-        output_path=Path("artifacts/uplift_distribution_all_users.png"),
+        output_path=Path(
+            f"artifacts/{cfg.data.name}_{cfg.model.name}_uplift_distribution_all_users.png"
+        ),
         xlabel="Uplift Score",
-        title="Uplift Score Distribution Before and After Collective Action",
+        title="Uplift Score Distribution For All Users",
     )
 
     # Compare distributions for participants only
@@ -110,14 +113,9 @@ def main(cfg: DictConfig):
     compare_distributions(
         before=collective_df["normalised_rank"].values,
         after=collective_df["normalised_rank_modified"].values,
-        output_path=Path("artifacts/rank_distribution_participants.png"),
-        xlabel="Normalised Rank",
-        title="Normalised Rank Distribution of Collective Action Participants",
-    )
-    compare_distributions(
-        before=collective_df["normalised_rank"].values,
-        after=collective_df["normalised_rank_modified"].values,
-        output_path=Path("artifacts/rank_distribution_participants.png"),
+        output_path=Path(
+            f"artifacts/{cfg.data.name}_{cfg.model.name}_rank_distribution_participants.png"
+        ),
         xlabel="Normalised Rank",
         title="Normalised Rank Distribution of Collective Action Participants",
     )
@@ -125,7 +123,9 @@ def main(cfg: DictConfig):
     compare_distributions(
         before=collective_df["uplift"].values,
         after=collective_df["uplift_modified"].values,
-        output_path=Path("artifacts/uplift_distribution_participants.png"),
+        output_path=Path(
+            f"artifacts/{cfg.data.name}_{cfg.model.name}_uplift_distribution_participants.png"
+        ),
         xlabel="Uplift Score",
         title="Uplift Score Distribution of Collective Action Participants",
     )
