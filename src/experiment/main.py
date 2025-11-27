@@ -87,7 +87,7 @@ def main(cfg: DictConfig):
             ),
         )
         experiment_input = ExperimentInput(
-            model=model,
+            untrained_model=model,
             train_df=train_df,
             test_df=test_df,
             feature_cols=feature_cols,
