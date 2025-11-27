@@ -89,6 +89,7 @@ def predict_uplift(
 def save_model(
     model: Union[LGBMClassifier, NeuralNetClassifier, UpliftRandomForestClassifier],
     feature_cols: List[str],
+    collective_actions_report: pd.DataFrame,
     artifacts_cfg: DictConfig,
 ) -> dict:
     """Save trained uplift model and associated metadata.
@@ -116,9 +117,14 @@ def save_model(
         pickle.dump(feature_cols, f)
     logger.info(f"Feature columns saved to {features_path}")
 
+    # Export collective actions report
+    ca_report_path = artifacts_dir / artifacts_cfg.collective_actions
+    collective_actions_report.to_csv(ca_report_path, index=False)
+
     return {
         "model_path": str(model_path),
         "features_path": str(features_path),
+        "collective_actions_path": str(ca_report_path),
     }
 
 
