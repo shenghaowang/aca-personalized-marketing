@@ -13,6 +13,8 @@ from eval.ranking import number_responses, uplift_curve
 from model.trainer import predict_uplift
 from utils.plot_utils import colors, model_labels
 
+plt.rcParams["figure.facecolor"] = "white"
+plt.rcParams["savefig.facecolor"] = "white"
 torch.set_num_threads(1)
 
 
@@ -35,7 +37,9 @@ def main(cfg: DictConfig):
     model_types = ["lgbm", "mlp", "uplift_rf"]
 
     # Create figure
-    _, ax = plt.subplots(figsize=(10, 7))
+    fig, ax = plt.subplots(figsize=(10, 7))
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
 
     # Get artifacts directory
     artifacts_dir = Path(cfg.artifacts.dir)
@@ -106,10 +110,16 @@ def main(cfg: DictConfig):
     ax.legend()
     ax.grid(True)
 
+    # Legend with white background
+    legend = ax.legend()
+    legend.get_frame().set_facecolor("white")  # white background
+    legend.get_frame().set_edgecolor("black")  # optional border
+    legend.get_frame().set_alpha(1.0)  # fully opaque
+
     # Save figure
     plt.tight_layout()
     output_path = artifacts_dir / f"{cfg.data.name}_qini_curves.png"
-    plt.savefig(output_path)
+    plt.savefig(output_path, dpi=300, bbox_inches="tight", facecolor="white")
     logger.info(f"Qini curves saved to {output_path}")
 
 

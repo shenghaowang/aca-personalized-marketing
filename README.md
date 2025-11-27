@@ -64,3 +64,17 @@ python src/experiment/main.py data=<dataset_name> model=<model_type>
 export PYTHONPATH=src
 python src/model/plot_qini_curves.py data=<dataset_name>
 ```
+
+### Aggregate Experiment Results
+
+```bash
+export PYTHONPATH=src
+python src/experiment/agg_results.py data=<dataset_name>
+```
+
+### Compare the Distribution of Uplift Scores and Normalized Ranking Before and After the Collective Action
+
+```bash
+export PYTHONPATH=src
+python src/experiment/uplift_analysis.py data=<dataset_name> model=<model_type>
+```

@@ -9,36 +9,16 @@ from omegaconf import DictConfig, OmegaConf
 from sklift.metrics import qini_auc_score
 from tqdm import tqdm
 
-from experiment.aca import CollectiveAction, experiment
+from experiment.aca import CollectiveAction, ExperimentInput, experiment
 from model.model_type import init_model
 from model.trainer import load_model, predict_uplift
+from utils.config_utils import register_custom_resolvers
 from utils.seed_utils import set_seed
 
 torch.set_num_threads(1)
 
-
-# Register custom resolvers - use replace=True to handle Hydra module reloading
-def get_collective_feature(collective_list):
-    """Extract feature name from collective criterion list."""
-    if not collective_list or len(collective_list) == 0:
-        raise ValueError("collective_list is empty or None")
-
-    target_feature = collective_list[0]
-    keys = list(target_feature.keys())
-    return keys[0]
-
-
-if not OmegaConf.has_resolver("get_collective_feature"):
-    OmegaConf.register_new_resolver(
-        "get_collective_feature",
-        get_collective_feature,
-    )
-
-if not OmegaConf.has_resolver("frac_to_pct"):
-    OmegaConf.register_new_resolver(
-        "frac_to_pct",
-        lambda frac_value: str(int(frac_value * 100)),
-    )
+# Register custom resolvers for Hydra/OmegaConf
+register_custom_resolvers()
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="config")
@@ -106,8 +86,8 @@ def main(cfg: DictConfig):
                 cfg.data.control_name if hasattr(cfg.data, "control_name") else None
             ),
         )
-        res = experiment(
-            model=model,
+        experiment_input = ExperimentInput(
+            untrained_model=model,
             train_df=train_df,
             test_df=test_df,
             feature_cols=feature_cols,
@@ -116,6 +96,7 @@ def main(cfg: DictConfig):
             action=action,
             seed=int(seeds[i]),
         )
+        res = experiment(input=experiment_input)
         res["baseline_qini_coeff"] = auqc
 
         logger.debug(res)
