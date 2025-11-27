@@ -31,6 +31,14 @@ pre-commit run --all-files
 
 ---
 
+📂 Datasets
+
+The two datasets used in this research are publicly available.
+- The Starbucks uplift dataset can be downloaded from [this](https://github.com/joshxinjie/Data_Scientist_Nanodegree/tree/master/starbucks_portfolio_exercise) GitHub repo.
+- The Hillstrom email marketing dataset can be imported from the [`scikit-uplift` library](https://www.uplift-modeling.com/en/latest/).
+
+---
+
 ## 🔥 Usage
 
 ### Train and export uplift model
@@ -42,7 +50,7 @@ python src/model/main.py data=<dataset_name> model=<model_type>
 
 Supported dataset names:
 
-* `starbucks`: Starbucks Dataset
+* `starbucks`: [Starbucks Dataset](https://medium.datadriveninvestor.com/simple-machine-learning-techniques-to-improve-your-marketing-strategy-demystifying-uplift-models-dc4fb3f927a2)
 * `hillstrom`: [Kevin Hillstrom Dataset](https://blog.minethatdata.com/2008/03/minethatdata-e-mail-analytics-and-data.html)
 
 Supported model types:

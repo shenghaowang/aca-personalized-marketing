@@ -67,15 +67,16 @@ def main(cfg: DictConfig):
     logger.info("Computing SHAP values for feature importance...")
     X_train = train_df[feature_cols].values
     shap_vals, X_used, X_original = compute_shap_values(model, X_train)
-    feature_impact_df = report_feature_contribution(
+    ca_report_df = report_feature_contribution(
         shap_vals, X_used, feature_cols, X_original
     )
-    logger.info(f"Feature impact:\n{feature_impact_df}")
+    logger.info(f"Collective actions proposal:\n{ca_report_df}")
 
     # Save trained model
     saved_paths = save_model(
         model=model,
         feature_cols=feature_cols,
+        collective_actions_report=ca_report_df,
         artifacts_cfg=cfg.artifacts,
     )
     logger.info(f"Training completed. Artifacts saved: {saved_paths}")
