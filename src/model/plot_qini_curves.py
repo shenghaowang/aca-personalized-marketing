@@ -88,7 +88,12 @@ def main(cfg: DictConfig):
             test_df["treatment"],
             n_nodes=None,
         )
-        ax.plot(xs, ys, label=model_labels[model_type], color=colors[model_type])
+        ax.plot(
+            xs,
+            ys,
+            label=f"{model_labels[model_type]}: {qini_score:.4f}",
+            color=colors[model_type],
+        )
 
     # Add random model baseline
     responses_target, rescaled_responses_control = number_responses(
