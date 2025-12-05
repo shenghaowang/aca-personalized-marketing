@@ -2,18 +2,16 @@ import importlib
 from pathlib import Path
 
 import hydra
-import matplotlib.pyplot as plt
 import torch
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 from sklift.metrics import qini_auc_score
 
-from eval.ranking import number_responses, uplift_curve
 from experiment.aca import CollectiveAction, ExperimentInput, rank_users_after_action
 from model.model_type import init_model
 from model.trainer import load_model, predict_uplift
 from utils.config_utils import register_custom_resolvers
-from utils.plot_utils import model_labels
+from utils.plot_utils import model_labels, plot_qini_with_collective_distribution
 
 torch.set_num_threads(1)
 
@@ -94,72 +92,21 @@ def main(cfg: DictConfig):
 
     logger.debug(f"Normalised rank dataframe:\n{normalised_rank_df.head()}")
 
-    # Plot Qini curves before and after collective action
-    fig, ax = plt.subplots(figsize=(10, 7))
-    fig.patch.set_facecolor("white")
-    ax.set_facecolor("white")
-
-    xs, ys = uplift_curve(
-        test_df[cfg.data.target_col],
-        normalised_rank_df["uplift"],
-        test_df["treatment"],
-        n_nodes=None,
-    )
-    ax.plot(
-        xs,
-        ys,
-        label=f"Before collective action: {qini_score_before:.4f}",
-        color="blue",
-    )
-
-    xs, ys = uplift_curve(
-        test_df[cfg.data.target_col],
-        normalised_rank_df["uplift_modified"],
-        test_df["treatment"],
-        n_nodes=None,
-    )
-    ax.plot(
-        xs,
-        ys,
-        label=f"After collective action: {qini_score_after:.4f}",
-        color="orange",
-    )
-
-    # Add random model baseline
-    responses_target, rescaled_responses_control = number_responses(
-        test_df[cfg.data.target_col], test_df["treatment"]
-    )
-    incr_responses = responses_target - rescaled_responses_control
-    ax.plot(
-        [0, len(test_df)],
-        [0, incr_responses],
-        label="Random",
-        color="green",
-        linestyle="--",
-    )
-
-    # Formatting
-    ax.set_title(
-        f"Qini Curves of {model_labels[cfg.model.name]} for {cfg.data.name} Dataset"
-    )
-    ax.set_xlabel("Number of individuals targeted")
-    ax.set_ylabel("Cumulative uplift")
-    ax.legend()
-    ax.grid(True)
-
-    # Legend with white background
-    legend = ax.legend()
-    legend.get_frame().set_facecolor("white")  # white background
-    legend.get_frame().set_edgecolor("black")  # optional border
-    legend.get_frame().set_alpha(1.0)  # fully opaque
-
-    # Save figure
-    plt.tight_layout()
+    # Plot Qini curves with collective user distribution
     output_path = (
         Path(cfg.artifacts.dir)
         / f"{cfg.data.name}_{cfg.model.name}_ranking_comparison.png"
     )
-    plt.savefig(output_path, dpi=300, bbox_inches="tight", facecolor="white")
+    plot_qini_with_collective_distribution(
+        test_df=test_df,
+        normalised_rank_df=normalised_rank_df,
+        target_col=cfg.data.target_col,
+        qini_score_before=qini_score_before,
+        qini_score_after=qini_score_after,
+        model_name=cfg.model.name,
+        dataset_name=cfg.data.name,
+        output_path=output_path,
+    )
     logger.info(f"Ranking comparison saved to {output_path}")
 
 
