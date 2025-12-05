@@ -211,7 +211,8 @@ def plot_qini_with_collective_distribution(
 
     # Plot density histograms for collective users
     if len(x_positions_before) > 0 or len(x_positions_after) > 0:
-        num_bins = 50
+        # Use more bins to make bars thinner since collective users are a small proportion
+        num_bins = 200
 
         if len(x_positions_before) > 0:
             ax2.hist(
@@ -250,7 +251,7 @@ def plot_qini_with_collective_distribution(
     legend.get_frame().set_alpha(1.0)
 
     ax1.set_title(
-        f"Qini Curves and Uplift Distribution of {model_labels[model_name]} for {dataset_name} Dataset"
+        f"Qini Curves and Ranking Distribution of {model_labels[model_name]} for {dataset_name} Dataset"
     )
 
     # Save figure
