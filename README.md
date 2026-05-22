@@ -8,8 +8,8 @@ While Docker is the recommended method for setting up the environment, the follo
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/your-username/text-classification-cnn-lstm.git
-cd text-classification-cnn-lstm
+git clone https://github.com/shenghaowang/aca-personalized-marketing.git
+cd aca-personalized-marketing
 ```
 
 2. **Create a virtual environment**
